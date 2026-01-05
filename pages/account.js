@@ -7,7 +7,153 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Link from "next/link";
 
-// (Définition des styled components comme ton code initial)
+// ===== Styled Components =====
+const Container = styled.div`
+  min-height: calc(100vh - 80px);
+  padding: 20px;
+  margin-top: 80px; 
+`;
+
+const Card = styled.div`
+  background: #fff;
+  border-radius: 12px;
+  padding: 25px;
+  max-width: 1000px;
+  margin: 0 auto 30px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+`;
+
+const GoogleButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 12px 20px;
+  width: 100%;
+  font-weight: 600;
+  font-size: 15px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background-color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  &:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+`;
+
+const AvatarWrapper = styled.div`position: relative;`;
+const AvatarImage = styled.img`
+  border-radius: 50%;
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border: ${props => (props.active ? "3px solid #2563eb" : "2px solid #e5e7eb")};
+  cursor: pointer;
+  transition: border 0.2s;
+`;
+
+const DropdownMenu = styled.div`
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  min-width: 200px;
+  padding: 15px;
+  font-size: 14px;
+  z-index: 10;
+`;
+
+const LogoutButton = styled.button`
+  width: 100%;
+  padding: 10px;
+  background-color: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+  &:hover { background-color: #b91c1c; }
+`;
+
+const CancelButton = styled.button`
+  padding: 6px 12px;
+  background-color: #f97316;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+  margin-top: 8px;
+  transition: background-color 0.2s;
+  &:hover { background-color: #c2410c; }
+`;
+
+const OrdersTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 25px;
+  font-size: 14px;
+  @media (max-width: 768px) { display: block; overflow-x: auto; }
+`;
+
+const TableHead = styled.thead`background: #f3f4f6;`;
+const TableRow = styled.tr`&:nth-child(even) { background: #f9fafb; }`;
+const TableHeader = styled.th`padding: 12px; text-align: left; font-weight: 600;`;
+const TableCell = styled.td`padding: 12px; vertical-align: top;`;
+
+const StatusBadge = styled.span`
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  color: ${props => {
+    switch(props.status){
+      case "Prête": return "#166534";
+      case "Confirmée": return "#1e40af";
+      case "En cours": return "#b45309";
+      case "En attente": return "#b91c1c";
+      case "Annulée":
+      case "Terminée": return "#374151";
+      default: return "#4b5563";
+    }
+  }};
+  background-color: ${props => {
+    switch(props.status){
+      case "Prête": return "#d1fae5";
+      case "Confirmée": return "#bfdbfe";
+      case "En cours": return "#fef3c7";
+      case "En attente": return "#fecaca";
+      case "Annulée":
+      case "Terminée": return "#e5e7eb";
+      default: return "#f3f4f6";
+    }
+  }};
+`;
+
+const ProductList = styled.div`display: flex; flex-direction: column; gap: 8px;`;
+const ProductItem = styled.div`display: flex; align-items: center; gap: 10px;`;
+const ProductImage = styled.img`width: 45px; height: 45px; border-radius: 6px; object-fit: cover;`;
+const ProductText = styled.div`p { margin: 0; line-height: 1.3; font-size: 13px; color: #374151; }`;
+
+const WishlistGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+`;
+
+const WishItem = styled.div`
+  border: 1px solid #eee;
+  padding: 10px;
+  border-radius: 10px;
+  text-align: center;
+  img { width: 100%; height: 100px; object-fit: contain; }
+  p { font-size: 13px; margin: 5px 0; font-weight: 500; }
+`;
 
 // ===== Component =====
 export default function AccountPage() {
@@ -18,13 +164,11 @@ export default function AccountPage() {
 
   useEffect(() => {
     if(status === "authenticated") {
-      // Fetch commandes
       fetch('/api/orders')
         .then(res => res.json())
         .then(data => Array.isArray(data) && setOrders(data))
         .catch(err => console.error(err));
 
-      // Fetch wishlist
       fetch('/api/wishlist')
         .then(res => res.json())
         .then(data => Array.isArray(data) && setWishlist(data))
