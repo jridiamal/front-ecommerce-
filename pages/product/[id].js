@@ -163,6 +163,7 @@ export default function ProductPage({ product, recommended }) {
   const { addProduct } = useContext(CartContext);
   const { triggerFlyAnimation } = useContext(AnimationContext);
   const imgRef = useRef(null);
+const recoImgRefs = useRef({});
 
   const [mainImage, setMainImage] = useState(product.images?.[0]);
   const [qty, setQty] = useState(1);
@@ -269,12 +270,14 @@ export default function ProductPage({ product, recommended }) {
               const recoCanAdd =
                 !recoOut && (!recoHasColors || recoVariant);
 
-              const recoImgRef = useRef(null);
 
               return (
                 <RecoCard key={p._id} whileHover={{ y: -10 }}>
                   <Link href={`/product/${p._id}`}>
-                    <img ref={recoImgRef} src={p.images?.[0]} />
+<img
+  ref={(el) => (recoImgRefs.current[p._id] = el)}
+  src={p.images?.[0]}
+/>
                   </Link>
 
                   <Title>{p.title}</Title>
@@ -288,7 +291,8 @@ export default function ProductPage({ product, recommended }) {
                     }}
                     onClick={() =>
                       recoCanAdd &&
-                      addToCart(p, recoImgRef.current)
+                     addToCart(p, recoImgRefs.current[p._id])
+
                     }
                   >
                     Ajouter au panier

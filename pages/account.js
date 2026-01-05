@@ -239,8 +239,10 @@ export default function AccountPage() {
 
         {/* Wishlist */}
         <Card>
-          <h3>❤️ Mes Produits Favoris</h3>
-          {(!wishlist || wishlist.length===0) ? <p>Vous n'avez pas encore de favoris.</p> : (
+         <p>Vous n&apos;avez pas encore de favoris.</p>
+
+          {(!wishlist || wishlist.length===0) ? <p>Vous n&apos;avez pas encore de favoris.</p>
+: (
             <WishlistGrid>
               {wishlist.map(w => w.product && (
                 <Link href={`/product/${w.product._id}`} key={w._id} style={{textDecoration:'none', color:'inherit'}}>
@@ -257,7 +259,8 @@ export default function AccountPage() {
         {/* Orders */}
         <Card>
           <h3>📦 Historique des Commandes</h3>
-          {orders.length===0 ? <p>Vous n'avez aucune commande.</p> : (
+          {orders.length===0 ? <p>Vous n&apos;avez aucune commande.</p>
+ : (
             <OrdersTable>
               <TableHead>
                 <TableRow>

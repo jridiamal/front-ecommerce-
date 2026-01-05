@@ -8,7 +8,6 @@ const Bg = styled.div`
   background: #7f7bd1;
   background: radial-gradient(circle, rgba(127, 123, 209, 1) 0%, rgba(245, 240, 240, 1) 100%);
   
-  /* Garantit que le fond couvre tout l'écran */
   min-height: 60vh;
   display: flex;
   align-items: center;
@@ -136,9 +135,10 @@ export default function Featured({ product }) {
               <Title>
                 Société <br /> <span>Frères Ben Marzouk</span>
               </Title>
-              <Desc>
-                L'excellence au service de votre savoir. Découvrez notre large sélection de fournitures scolaires, livres, et accessoires de bureau soigneusement sélectionnés.
-              </Desc>
+             <Desc>
+  L&apos;excellence au service de votre savoir. Découvrez notre large sélection de fournitures scolaires, livres, et accessoires de bureau soigneusement sélectionnés.
+</Desc>
+
 
               <ButtonsWrapper>
                 <PrimaryButtonLink href={"/products"}>
