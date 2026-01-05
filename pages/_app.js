@@ -1,5 +1,3 @@
-"use client";
-
 import { SessionProvider } from "next-auth/react";
 import { createGlobalStyle } from "styled-components";
 import { CartContextProvider } from "@/components/CartContext";
@@ -7,6 +5,7 @@ import { AnimationContextProvider } from "@/components/AnimationContext";
 import FlyAnimation from "@/components/FlyAnimation"; 
 
 const GlobalStyles = createGlobalStyle`
+  
   html, body {
     max-width: 100vw;
     overflow-x: hidden; 
@@ -19,16 +18,15 @@ const GlobalStyles = createGlobalStyle`
 `;
 
 export default function App({ Component, pageProps }) {
-  return (
-    <SessionProvider session={pageProps.session}>
-      <GlobalStyles />
-      <CartContextProvider>
-        <AnimationContextProvider>
-          <Component {...pageProps} />
-          {/* FlyAnimation client-only */}
-          {typeof window !== "undefined" && <FlyAnimation />}
-        </AnimationContextProvider>
-      </CartContextProvider>
-    </SessionProvider>
-  );
+  return (
+    <SessionProvider session={pageProps.session}>
+      <GlobalStyles />
+      <CartContextProvider>
+          <AnimationContextProvider> 
+              <Component {...pageProps} />
+              <FlyAnimation /> 
+          </AnimationContextProvider>
+      </CartContextProvider>
+    </SessionProvider>
+  );
 }
