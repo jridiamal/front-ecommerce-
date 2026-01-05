@@ -268,7 +268,7 @@ const canAddToCart =
     }
   }
 
-  function handleAddToCart(e) {
+ function handleAddToCart(e) {
   e.preventDefault();
 
   if (!canAddToCart) {
@@ -276,8 +276,10 @@ const canAddToCart =
     return;
   }
 
+  // SSR safe: check window
   if (typeof window !== "undefined" && imageRef.current) {
-    triggerFlyAnimation(imageRef.current, imageRef.current.getBoundingClientRect());
+    const rect = imageRef.current.getBoundingClientRect();
+    triggerFlyAnimation(imageRef.current, rect);
   }
 
   addProduct({ _id, color: selectedColor, image: currentImage });
