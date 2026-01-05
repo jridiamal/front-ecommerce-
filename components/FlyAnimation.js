@@ -1,3 +1,4 @@
+'use client'
 import React, { useContext } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { AnimationContext } from './AnimationContext';

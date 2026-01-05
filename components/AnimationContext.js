@@ -1,3 +1,4 @@
+"use client";
 import React, { createContext, useRef, useState, useCallback, useMemo } from 'react';
 
 export const AnimationContext = createContext({});
