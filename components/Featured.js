@@ -4,15 +4,15 @@ import ButtonLink from "@/components/ButtonLink";
 import { useContext } from "react";
 import { CartContext } from "@/components/CartContext";
 
-/* ================== STYLES OPTIMISÉS ================== */
+/* ================== STYLES RESPONSIVE ================== */
 
 const Bg = styled.div`
   width: 100%;
-  min-height: 50vh; /* Ajusté pour mobile */
+  min-height: 50vh; 
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 30px 15px; /* Padding réduit sur mobile */
+  padding: 40px 20px; /* Espace équilibré pour mobile */
   box-sizing: border-box;
 
   background: #7f7bd1;
@@ -27,31 +27,30 @@ const Bg = styled.div`
 const ColumnsWrapper = styled.div`
   display: grid;
   grid-template-columns: 1fr;
-  gap: 30px;
+  gap: 40px;
   align-items: center;
-  justify-items: center; /* Centre les colonnes sur mobile */
+  justify-items: center; /* Centre le contenu horizontalement sur mobile */
 
   @media screen and (min-width: 768px) {
     grid-template-columns: 1.1fr 0.9fr;
     gap: 60px;
-    justify-items: start;
+    justify-items: start; /* Aligne à gauche sur desktop */
   }
 `;
 
 const Column = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: center; /* Centre tout sur mobile */
+  align-items: center; /* Centre le texte et bouton sur mobile */
   text-align: center;
 
   img {
     width: 100%;
-    max-width: 320px; /* Taille optimale pour iPhone */
+    max-width: 300px; /* Taille optimisée pour écrans de téléphone */
     height: auto;
     border-radius: 20px;
     object-fit: contain;
-    /* Petit effet d'ombre pour l'image */
-    filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.15));
   }
 
   @media screen and (min-width: 768px) {
@@ -87,14 +86,13 @@ const Title = styled.h1`
 
 const Desc = styled.p`
   color: #475569;
-  font-size: 0.95rem;
+  font-size: 1rem;
   line-height: 1.6;
   margin-top: 15px;
-  max-width: 400px; /* Évite que le texte soit trop large sur mobile */
+  max-width: 450px;
 
   @media screen and (min-width: 768px) {
     font-size: 1.1rem;
-    max-width: 550px;
     margin-top: 25px;
   }
 `;
@@ -123,8 +121,6 @@ const PrimaryButtonLink = styled(ButtonLink)`
   gap: 10px;
   transition: all 0.3s ease;
   box-shadow: 0 8px 16px rgba(30, 64, 175, 0.2);
-
-  /* Empêche le texte de se casser sur iPhone SE */
   white-space: nowrap;
 
   span {
@@ -135,11 +131,11 @@ const PrimaryButtonLink = styled(ButtonLink)`
   &:hover {
     background-color: #1d4ed8;
     transform: translateY(-2px);
-    box-shadow: 0 12px 24px rgba(30, 64, 175, 0.3);
+    span { transform: translateX(5px); }
   }
 
   &:active {
-    transform: scale(0.98);
+    transform: scale(0.96); /* Feedback tactile sur mobile */
   }
 `;
 
@@ -152,6 +148,7 @@ export default function Featured({ product }) {
     <Bg>
       <Center>
         <ColumnsWrapper>
+          {/* L'image passe en deuxième position sur mobile pour la hiérarchie visuelle */}
           <Column>
             <Title>
               Société <br /> <span>Frères Ben Marzouk</span>
