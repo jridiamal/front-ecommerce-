@@ -1,7 +1,8 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 
-export default NextAuth({
+// 🔹 Définir authOptions séparément
+export const authOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
@@ -15,10 +16,9 @@ export default NextAuth({
     strategy: "jwt",
   },
 
-  // 🔥 هذا أهم جزء — تغيير أسماء الكوكيز
   cookies: {
     sessionToken: {
-      name: "__Secure-next-auth.session-token-project2",  // اسم خاص بالمشروع 2
+      name: "__Secure-next-auth.session-token-project2",
       options: {
         httpOnly: true,
         sameSite: "lax",
@@ -41,4 +41,6 @@ export default NextAuth({
       return session;
     },
   },
-});
+};
+
+export default NextAuth(authOptions);
