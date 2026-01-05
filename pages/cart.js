@@ -306,11 +306,23 @@ export default function CartPage() {
     setIsLoading(true);
 
     // Préparer panier correctement
-    const checkoutCart = groupedItems.map(item => ({
-      _id: item._id,
-      colorId: item.colorId || item.color || 'default',
-      quantity: item.quantity
-    }));
+   const checkoutCart = groupedItems.map(item => {
+  const product = products.find(p => p._id === item._id);
+  let colorId = item.colorId || null;
+
+  // si pas de colorId, chercher la couleur par nom
+  if (!colorId && item.color && product?.colors) {
+    const colorVariant = product.colors.find(c => c.name === item.color);
+    if (colorVariant) colorId = colorVariant._id;
+  }
+
+  return {
+    _id: item._id,
+    colorId,
+    color: item.color || "default",
+    quantity: item.quantity
+  };
+});
 
     await axios.post("/api/checkout", {
       name,
