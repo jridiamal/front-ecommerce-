@@ -299,24 +299,40 @@ export default function CartPage() {
   }
 
   async function goToPayment() {
-    if(!name || name.length < 3) return showToast("Nom invalide.", "error");
-    if(!/^(2|4|5|9)\d{7}$/.test(phone)) return showToast("Numéro de téléphone invalide (8 chiffres).", "error");
+  if(!name || name.length < 3) return showToast("Nom invalide.", "error");
+  if(!/^(2|4|5|9)\d{7}$/.test(phone)) return showToast("Numéro de téléphone invalide (8 chiffres).", "error");
 
-    try {
-      setIsLoading(true);
-      await axios.post("/api/checkout", {
-        name, email, phone, streetAddress, country,
-        cartProducts,
-        paymentMethod: "Paiement à la livraison"
-      });
-      showToast("Commande confirmée avec succès !", "success");
-      clearCart();
-    } catch (err) {
-      showToast("Erreur lors de la commande.", "error");
-    } finally {
-      setIsLoading(false);
-    }
+  try {
+    setIsLoading(true);
+
+    // Préparer panier correctement
+    const checkoutCart = groupedItems.map(item => ({
+      _id: item._id,
+      colorId: item.colorId || item.color || 'default',
+      quantity: item.quantity
+    }));
+
+    await axios.post("/api/checkout", {
+      name,
+      email,
+      phone,
+      streetAddress,
+      country,
+      cartProducts: checkoutCart,
+      paymentMethod: "Paiement à la livraison"
+    });
+
+    showToast("Commande confirmée avec succès !", "success");
+    clearCart();
+
+  } catch (err) {
+    console.error(err);
+    showToast(err.response?.data?.error || "Erreur lors de la commande.", "error");
+  } finally {
+    setIsLoading(false);
   }
+}
+
 
   if(status === "loading") return (
     <Center>
