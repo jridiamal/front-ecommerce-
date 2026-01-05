@@ -54,13 +54,58 @@ const FilterChip = styled.button`
   &:hover { border-color: #1f387e; transform: translateY(-1px); }
 `;
 
+// Ajoutez ce style pour le conteneur des filtres
+const FilterWrapper = styled.div`
+  display: flex;
+  gap: 8px;
+  overflow-x: auto; /* Permet de défiler les catégories sur mobile */
+  width: 100%;
+  padding-bottom: 10px;
+  -webkit-overflow-scrolling: touch; /* Scroll fluide sur iPhone */
+  
+  &::-webkit-scrollbar {
+    display: none; /* Cache la barre de scroll pour un look app */
+  }
+
+  @media screen and (min-width: 768px) {
+    overflow-x: visible;
+    width: auto;
+  }
+`;
+
+const Title = styled.h2`
+  font-size: 1.5rem; /* Réduit pour mobile */
+  margin: 0;
+  font-weight: 800;
+  color: #121212;
+
+  @media screen and (min-width: 768px) {
+    font-size: 2rem;
+  }
+`;
+
 const StyledButton = styled.button`
-  background: #3d47ddff; color: white; border: none; padding: 16px 45px;
-  border-radius: 50px; font-weight: 600; cursor: pointer; display: flex;
-  align-items: center; gap: 15px; transition: all 0.4s;
+  background: #3d47ddff;
+  color: white;
+  border: none;
+  padding: 14px 30px; /* Plus petit sur mobile */
+  border-radius: 50px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  transition: all 0.4s;
   box-shadow: 0 4px 15px rgba(0, 47, 202, 0.4);
+  width: fit-content;
+
+  @media screen and (min-width: 768px) {
+    padding: 16px 45px;
+  }
+
   &:hover { 
-    background: #000; transform: translateY(-3px); 
+    background: #000;
+    transform: translateY(-3px); 
     svg { transform: translateX(8px); }
   }
   svg { transition: transform 0.3s ease; }
@@ -92,21 +137,27 @@ export default function NewProducts({ products }) {
             <Title>Nouveautés</Title>
             <Badge>New</Badge>
           </TitleGroup>
-          <div style={{display:'flex', gap:'8px'}}>
+          
+          <FilterWrapper>
             <FilterChip active={activeFilter === "all"} onClick={() => setActiveFilter("all")}>
               Tous
             </FilterChip>
             {categories.map(cat => (
-              <FilterChip key={cat._id} active={activeFilter === cat._id} onClick={() => setActiveFilter(cat._id)}>
+              <FilterChip 
+                key={cat._id} 
+                active={activeFilter === cat._id} 
+                onClick={() => setActiveFilter(cat._id)}
+                style={{whiteSpace:'nowrap'}} // Empêche le texte de se couper
+              >
                 {cat.name}
               </FilterChip>
             ))}
-          </div>
+          </FilterWrapper>
         </HeaderRow>
 
         <ProductsGrid products={displayProducts} />
 
-        <div style={{display:'flex', flexDirection:'column', alignItems:'center', marginTop:'50px'}}>
+        <div style={{display:'flex', flexDirection:'column', alignItems:'center', marginTop:'40px'}}>
           <Link href="/products" passHref legacyBehavior>
             <StyledButton>
               Voir toute la librairie
