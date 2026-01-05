@@ -13,25 +13,21 @@ export default async function handler(req, res) {
   try {
     const { name, email, phone, streetAddress, country, cartProducts, userId } = req.body;
 
-    // Récupérer tous les produits depuis MongoDB
+    // Récupérer les produits de la DB
     const productIds = cartProducts.map(p => p._id);
-    const productsFromDb = await Product.find({ _id: { $in: productIds } });
+    const productsFromDb = await Product.find({ _id: productIds });
 
-    // Préparer les line_items
+    // Créer line_items
     const line_items = cartProducts.map(p => {
-      const product = productsFromDb.find(pr => pr._id.toString() === p._id.toString());
+      const product = productsFromDb.find(pr => pr._id.toString() === p._id);
       if (!product) return null; // produit non trouvé
 
-      // Chercher la couleur par ID ou par nom
-      let colorVariant = null;
-      if (p.colorId && product.colors) {
-        colorVariant = product.colors.id(p.colorId);
-      }
-      if (!colorVariant && p.color && product.colors) {
-        colorVariant = product.colors.find(c => c.name === p.color);
-      }
+      const colorVariant = product?.properties?.colorVariants?.find(
+  v => v._id.toString() === p.colorId
+);
 
-      if (!colorVariant || colorVariant.outOfStock) return null; // couleur indisponible
+if (!colorVariant) return null;
+
 
       const quantity = Number(p.quantity || 1);
       const price = Number(product.price || 0);
@@ -44,12 +40,12 @@ export default async function handler(req, res) {
         colorId: colorVariant._id,
         quantity,
         price,
-        image: colorVariant.image,
+      image: colorVariant.imageUrl,
       };
-    }).filter(Boolean); // supprimer les null (produits indisponibles)
+    }).filter(Boolean); // supprime les null
 
     if (line_items.length === 0) {
-      return res.status(400).json({ error: "Aucun produit disponible pour cette commande." });
+      return res.status(400).json({ error: "Aucun produit disponible pour cette commande" });
     }
 
     // Calcul du total
@@ -70,7 +66,6 @@ export default async function handler(req, res) {
     });
 
     return res.status(201).json(order);
-
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Erreur serveur lors du checkout." });
