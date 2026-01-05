@@ -36,9 +36,7 @@ const TitleGroup = styled.div`
   align-items: center; gap: 12px;
 `;
 
-const Title = styled.h2`
-  font-size: 2rem; margin: 0; font-weight: 800; color: #121212;
-`;
+
 
 const Badge = styled.span`
   background: #e63946; color: white; font-size: 11px; padding: 3px 8px;
