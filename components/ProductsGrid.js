@@ -1,12 +1,19 @@
 import styled from "styled-components";
 import ProductBox from "./ProductBox";
+
 const Grid = styled.div`
   display: grid;
-  gap: 50px;
-  margin-top: 50px;
+  /* 2 colonnes sur mobile, 3 sur tablette, 4 sur desktop */
+  grid-template-columns: 1fr 1fr; 
+  gap: 15px;
 
-  @media (min-width: 900px) {
-    grid-template-columns: 1.1fr 1fr;
+  @media screen and (min-width: 768px) {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+  }
+
+  @media screen and (min-width: 1024px) {
+    grid-template-columns: repeat(4, 1fr);
   }
 `;
 

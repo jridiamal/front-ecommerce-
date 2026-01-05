@@ -52,23 +52,21 @@ const FilterChip = styled.button`
   &:hover { border-color: #1f387e; transform: translateY(-1px); }
 `;
 
-// Ajoutez ce style pour le conteneur des filtres
 const FilterWrapper = styled.div`
   display: flex;
-  gap: 8px;
-  overflow-x: auto; /* Permet de défiler les catégories sur mobile */
-  width: 100%;
-  padding-bottom: 10px;
-  -webkit-overflow-scrolling: touch; /* Scroll fluide sur iPhone */
+  gap: 10px;
+  overflow-x: auto;
+  width: calc(100% + 40px); /* Sort des marges du parent pour un scroll plein écran */
+  margin: 0 -20px; 
+  padding: 5px 20px 15px 20px;
+  scroll-snap-type: x mandatory; /* Aligne proprement les puces lors du scroll */
   
-  &::-webkit-scrollbar {
-    display: none; /* Cache la barre de scroll pour un look app */
+  & > button {
+    scroll-snap-align: start;
+    flex-shrink: 0; /* Empêche les boutons de s'écraser */
   }
 
-  @media screen and (min-width: 768px) {
-    overflow-x: visible;
-    width: auto;
-  }
+  &::-webkit-scrollbar { display: none; }
 `;
 
 const Title = styled.h2`

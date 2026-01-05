@@ -27,14 +27,18 @@ const Bg = styled.div`
 const ColumnsWrapper = styled.div`
   display: grid;
   grid-template-columns: 1fr;
-  gap: 40px;
-  align-items: center;
-  justify-items: center; /* Centre le contenu horizontalement sur mobile */
+  gap: 30px;
+
+  /* Inverser l'ordre sur mobile pour mettre l'image en haut si désiré */
+  & div:nth-child(2) {
+    grid-row: 1; /* L'image monte en premier */
+  }
 
   @media screen and (min-width: 768px) {
     grid-template-columns: 1.1fr 0.9fr;
-    gap: 60px;
-    justify-items: start; /* Aligne à gauche sur desktop */
+    & div:nth-child(2) {
+      grid-row: auto;
+    }
   }
 `;
 
