@@ -3,9 +3,11 @@ import ProductBox from "./ProductBox";
 
 const Grid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 24px;
-  margin-top: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* full responsive */
+  gap: 20px;       /* espace entre cartes */
+  width: 100%;
+  padding: 0 10px;  /* padding mobile */
+  box-sizing: border-box;
 `;
 
 export default function ProductsGrid({ products }) {
