@@ -211,9 +211,12 @@ export default function Header() {
               <NavLink href="/categories" $active={active("/categories")}>Catégories</NavLink>
               <NavLink href="/account" $active={active("/account")}>Compte</NavLink>
               <NavLink href="/cart" $active={active("/cart")}>
-                Panier 
-                {cartProducts?.length > 0 && <CartBadge>{cartProducts.length}</CartBadge>}
-              </NavLink>
+  Panier 
+  <span ref={cartRef}>
+    {cartProducts?.length > 0 && <CartBadge>{cartProducts.length}</CartBadge>}
+  </span>
+</NavLink>
+
             </DesktopNav>
           </Wrapper>
         </Center>
@@ -236,13 +239,14 @@ export default function Header() {
           <UserIcon />
           <span>Compte</span>
         </MobileNavItem>
-        <MobileNavItem href="/cart" $active={active("/cart")}>
-          <IconWrapper>
-            <CartIcon />
-            {cartProducts?.length > 0 && <MobileBadge>{cartProducts.length}</MobileBadge>}
-          </IconWrapper>
-          <span>Panier</span>
-        </MobileNavItem>
+       <MobileNavItem href="/cart" $active={active("/cart")}>
+  <IconWrapper ref={cartRef}>
+    <CartIcon />
+    {cartProducts?.length > 0 && <MobileBadge>{cartProducts.length}</MobileBadge>}
+  </IconWrapper>
+  <span>Panier</span>
+</MobileNavItem>
+
       </MobileBottomNav>
     </>
   );

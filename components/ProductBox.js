@@ -181,7 +181,6 @@ const Price = styled.div`
   span { font-size: 0.8rem; color: #f00e0eff; margin-left: 4px; font-weight: 400; }
 `;
 
-/* ================== COMPONENT ================== */
 
 export default function ProductBox({
   _id,
@@ -281,7 +280,7 @@ if (!canAddToCart) {
 }
 
     if (imageRef.current) {
-      triggerFlyAnimation(imageRef.current, imageRef.current.getBoundingClientRect());
+    triggerFlyAnimation(imageRef.current, imageRef.current.getBoundingClientRect());
     }
 
     addProduct({ _id, color: selectedColor, image: currentImage });
