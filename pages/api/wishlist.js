@@ -1,14 +1,12 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import { WishedProduct } from "@/models/WishedProduct";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "./auth/[...nextauth]"; // Vérifiez bien ce chemin
+import { authOptions } from "./auth/[...nextauth]";
 
 export default async function handler(req, res) {
   await mongooseConnect();
 
-  // On récupère la session côté serveur
   const session = await getServerSession(req, res, authOptions);
-
   if (!session || !session.user?.email) {
     return res.status(401).json({ error: "Non authentifié" });
   }
@@ -17,9 +15,14 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     try {
-      // On peuple le champ 'product' pour avoir les détails (titre, image) dans la page compte
       const wishlist = await WishedProduct.find({ userEmail }).populate("product");
-      return res.status(200).json(wishlist);
+      return res.status(200).json(
+        wishlist.map(w => ({
+          _id: w._id,
+          product: w.product,
+          wished: true
+        }))
+      );
     } catch (err) {
       return res.status(500).json({ error: "Erreur lors de la récupération" });
     }
