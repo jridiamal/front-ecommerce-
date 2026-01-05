@@ -269,22 +269,20 @@ const canAddToCart =
   }
 
   function handleAddToCart(e) {
-    e.preventDefault();
-if (!canAddToCart) {
-  toast.error(
-    !selectedColor
-      ? "Choisissez une couleur"
-      : "Produit en rupture"
-  );
-  return;
+  e.preventDefault();
+
+  if (!canAddToCart) {
+    toast.error(!selectedColor ? "Choisissez une couleur" : "Produit en rupture");
+    return;
+  }
+
+  if (typeof window !== "undefined" && imageRef.current) {
+    triggerFlyAnimation(imageRef.current, imageRef.current.getBoundingClientRect());
+  }
+
+  addProduct({ _id, color: selectedColor, image: currentImage });
 }
 
-    if (imageRef.current) {
-    triggerFlyAnimation(imageRef.current, imageRef.current.getBoundingClientRect());
-    }
-
-    addProduct({ _id, color: selectedColor, image: currentImage });
-  }
 
   function selectColor(variant) {
     if (variant.outOfStock || outOfStock) return;

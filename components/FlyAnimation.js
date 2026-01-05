@@ -17,7 +17,7 @@ const AnimatedImage = styled.img`
   height: ${props => props.$height}px;
   z-index: 9999;
   border-radius: 10px;
-  object-fit: contain; 
+  object-fit: contain;
   pointer-events: none;
 
   ${props => props.$shouldAnimate && css`
@@ -31,7 +31,8 @@ const AnimatedImage = styled.img`
 export default function FlyAnimation() {
   const { animationInfo } = useContext(AnimationContext);
 
-  if (!animationInfo) return null;
+  // SSR safe
+  if (typeof window === "undefined" || !animationInfo) return null;
 
   const { imageSrc, startX, startY, endX, endY, width, height } = animationInfo;
 

@@ -9,6 +9,8 @@ export function AnimationContextProvider({ children }) {
   const [animationInfo, setAnimationInfo] = useState(null);
 
   const triggerFlyAnimation = useCallback((imageElement, startRect) => {
+    // SSR safe
+    if (typeof window === "undefined") return;
     if (!cartRef.current) return;
 
     const cartRect = cartRef.current.getBoundingClientRect();
@@ -17,13 +19,13 @@ export function AnimationContextProvider({ children }) {
       imageSrc: imageElement.src,
       startX: startRect.left,
       startY: startRect.top,
-      endX: cartRect.left + cartRect.width/2 - startRect.width/2, // center image on cart
-      endY: cartRect.top + cartRect.height/2 - startRect.height/2,
+      endX: cartRect.left + cartRect.width / 2 - startRect.width / 2,
+      endY: cartRect.top + cartRect.height / 2 - startRect.height / 2,
       width: startRect.width,
       height: startRect.height,
     });
 
-    setTimeout(() => setAnimationInfo(null), 700); // duration animation
+    setTimeout(() => setAnimationInfo(null), 700);
   }, []);
 
   const contextValue = useMemo(() => ({
