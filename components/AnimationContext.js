@@ -1,14 +1,21 @@
+// AnimationContext.js
 "use client";
 import React, { createContext, useRef, useState, useCallback, useMemo } from 'react';
 
-export const AnimationContext = createContext({});
+// ADD DEFAULT VALUES HERE
+export const AnimationContext = createContext({
+    cartRef: { current: null },
+    triggerFlyAnimation: () => {},
+    animationInfo: null
+});
 
 export function AnimationContextProvider({ children }) {
     const cartRef = useRef(null);
     const [animationInfo, setAnimationInfo] = useState(null);
 
     const triggerFlyAnimation = useCallback((imageElement, startRect) => {
-        if (!cartRef.current) return;
+        // Safety check for SSR/Build
+        if (!cartRef.current || !imageElement) return;
         
         const cartRect = cartRef.current.getBoundingClientRect();
         
