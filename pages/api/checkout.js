@@ -13,16 +13,24 @@ export default async function handler(req, res) {
   try {
     const { name, email, phone, streetAddress, country, cartProducts, userId } = req.body;
 
-    // Récupérer les produits de la DB
+    // Récupérer tous les produits depuis MongoDB
     const productIds = cartProducts.map(p => p._id);
-    const productsFromDb = await Product.find({ _id: productIds });
+    const productsFromDb = await Product.find({ _id: { $in: productIds } });
 
-    // Créer line_items
+    // Préparer les line_items
     const line_items = cartProducts.map(p => {
-      const product = productsFromDb.find(pr => pr._id.toString() === p._id);
+      const product = productsFromDb.find(pr => pr._id.toString() === p._id.toString());
       if (!product) return null; // produit non trouvé
 
-      const colorVariant = product?.colors?.id(p.colorId);
+      // Chercher la couleur par ID ou par nom
+      let colorVariant = null;
+      if (p.colorId && product.colors) {
+        colorVariant = product.colors.id(p.colorId);
+      }
+      if (!colorVariant && p.color && product.colors) {
+        colorVariant = product.colors.find(c => c.name === p.color);
+      }
+
       if (!colorVariant || colorVariant.outOfStock) return null; // couleur indisponible
 
       const quantity = Number(p.quantity || 1);
@@ -38,10 +46,10 @@ export default async function handler(req, res) {
         price,
         image: colorVariant.image,
       };
-    }).filter(Boolean); // supprime les null
+    }).filter(Boolean); // supprimer les null (produits indisponibles)
 
     if (line_items.length === 0) {
-      return res.status(400).json({ error: "Aucun produit disponible pour cette commande" });
+      return res.status(400).json({ error: "Aucun produit disponible pour cette commande." });
     }
 
     // Calcul du total
@@ -62,6 +70,7 @@ export default async function handler(req, res) {
     });
 
     return res.status(201).json(order);
+
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Erreur serveur lors du checkout." });
