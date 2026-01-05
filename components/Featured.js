@@ -46,27 +46,31 @@ const Title = styled.h1`
 
 const Desc = styled.p`
   font-family: 'Inter', sans-serif;
-  color: #475569; 
+  color: #475569;
   font-size: 1.1rem;
-  line-height: 1.8;
+  line-height: 1.6;
   margin-top: 25px;
-  max-width: 550px; 
+  max-width: 100%;  /* 100% a7sen pour mobile */
   font-weight: 400;
+
+  @media (min-width: 768px) {
+    max-width: 550px; /* garde max pour desktop */
+  }
 `;
+
 
 const ColumnsWrapper = styled.div`
   display: grid;
   grid-template-columns: 1fr;
-  gap: 60px; 
+  gap: 40px;
   align-items: center;
 
   img {
-    width: 200%; 
+    width: 100%;      /* 100% khir men 200% */
     max-width: 500px;
-    height: auto; 
-    max-height: 450px; 
-    object-fit: contain; 
+    height: auto;
     border-radius: 24px;
+    object-fit: contain;
     transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     filter: drop-shadow(0 20px 40px rgba(15, 23, 42, 0.1));
   }
@@ -77,9 +81,10 @@ const ColumnsWrapper = styled.div`
   }
 
   @media screen and (min-width: 768px) {
-    grid-template-columns: 1.2fr 0.8fr; 
+    grid-template-columns: 1.2fr 0.8fr;
   }
 `;
+
 
 const Column = styled.div`
   display: flex;

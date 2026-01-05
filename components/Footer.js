@@ -22,10 +22,11 @@ const FooterGrid = styled.div`
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1fr;
-  gap: 40px;
+  gap: 30px;  /* moins gap sur mobile */
 
   @media (min-width: 768px) {
     grid-template-columns: 2fr 1fr 1fr;
+    gap: 40px;
   }
 `;
 

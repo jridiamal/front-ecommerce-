@@ -310,7 +310,6 @@ export default function CartPage() {
   const product = products.find(p => p._id === item._id);
   let colorId = item.colorId || null;
 
-  // si pas de colorId, chercher la couleur par nom
   if (!colorId && item.color && product?.colors) {
     const colorVariant = product.colors.find(c => c.name === item.color);
     if (colorVariant) colorId = colorVariant._id;
