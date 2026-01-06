@@ -270,10 +270,15 @@ const canAddToCart =
  function handleAddToCart(e) {
   e.preventDefault();
 
-  // fallback: إذا المنتج فيه ألوان و ما تختارشش لون
-  if (hasColors && !selectedColor) {
-    toast.error("Choisissez une couleur");
-    return;
+  let imageToAdd = images[0]; // default image
+  let colorToAdd = null;
+  let colorIdToAdd = null;
+
+  if (hasColors && selectedColor) {
+    // إذا اختار لون
+    imageToAdd = currentVariant?.imageUrl || images[0];
+    colorToAdd = currentVariant?.color;
+    colorIdToAdd = currentVariant?._id || null;
   }
 
   if (imageRef.current) {
@@ -282,10 +287,12 @@ const canAddToCart =
 
   addProduct({
     _id,
-    colorId: currentVariant?._id || null,
-    color: currentVariant?.color || "default",
-    image: currentVariant?.imageUrl || images[0], // fallback to default image
+    colorId: colorIdToAdd,
+    color: colorToAdd,
+    image: imageToAdd,
   });
+
+  toast.success("Produit ajouté au panier");
 }
 
   
