@@ -267,29 +267,28 @@ const canAddToCart =
     }
   }
 
-  function handleAddToCart(e) {
-    e.preventDefault();
-if (!canAddToCart) {
-  toast.error(
-    !selectedColor
-      ? "Choisissez une couleur"
-      : "Produit en rupture"
-  );
-  return;
+ function handleAddToCart(e) {
+  e.preventDefault();
+
+  // fallback: إذا المنتج فيه ألوان و ما تختارشش لون
+  if (hasColors && !selectedColor) {
+    toast.error("Choisissez une couleur");
+    return;
+  }
+
+  if (imageRef.current) {
+    triggerFlyAnimation(imageRef.current, imageRef.current.getBoundingClientRect());
+  }
+
+  addProduct({
+    _id,
+    colorId: currentVariant?._id || null,
+    color: currentVariant?.color || "default",
+    image: currentVariant?.imageUrl || images[0], // fallback to default image
+  });
 }
 
-    if (imageRef.current) {
-      triggerFlyAnimation(imageRef.current, imageRef.current.getBoundingClientRect());
-    }
-
-addProduct({
-  _id,
-  colorId: currentVariant?._id || null,
-  color: currentVariant?.color || "default",
-  image: currentVariant?.imageUrl || images[0],
-});
-
-  }
+  
 
   function selectColor(variant) {
     if (variant.outOfStock || outOfStock) return;
