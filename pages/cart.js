@@ -299,14 +299,26 @@ export default function CartPage() {
     } else setProducts([]);
   }, [cartProducts]);
 
-  const groupedCart = cartProducts.reduce((acc, cartItem) => {
-    const id = typeof cartItem === 'string' ? cartItem : cartItem._id;
-    const color = cartItem.color || 'default';
-    const key = `${id}-${color}`;
-    if (!acc[key]) acc[key] = { ...cartItem, _id: id, quantity: 0 };
-    acc[key].quantity += 1;
-    return acc;
-  }, {});
+ const groupedCart = cartProducts.reduce((acc, cartItem) => {
+  const id = cartItem._id;
+  const color = cartItem.color || "default";
+  const colorId = cartItem.colorId;        // ⭐
+
+  const key = `${id}-${colorId || "default"}`;
+
+  if (!acc[key]) {
+    acc[key] = {
+      _id: id,
+      color,
+      colorId,                             // ⭐
+      quantity: 0
+    };
+  }
+
+  acc[key].quantity += 1;
+  return acc;
+}, {});
+
 
   const groupedItems = Object.values(groupedCart);
 
@@ -323,11 +335,12 @@ export default function CartPage() {
 
     try {
       setIsLoading(true);
-      const checkoutCart = groupedItems.map(item => ({
-        _id: item._id,
-        color: item.color || "default",
-        quantity: item.quantity
-      }));
+     const checkoutCart = groupedItems.map(item => ({
+  _id: item._id,
+  colorId: item.colorId,   // ⭐ هذا هو التغيير
+  quantity: item.quantity
+}));
+
 
       await axios.post("/api/checkout", {
         name, email, phone, streetAddress,
