@@ -17,6 +17,8 @@ const OrderSchema = new Schema(
         color: String,       // ✅ مهم
         quantity: Number,
         price: Number,
+        colorId: String,
+
         image: String,
       },
     ],

@@ -337,7 +337,8 @@ export default function CartPage() {
       setIsLoading(true);
      const checkoutCart = groupedItems.map(item => ({
   _id: item._id,
-  colorId: item.colorId,   // ⭐ هذا هو التغيير
+  colorId: item.colorId,
+    color: item.color,      
   quantity: item.quantity
 }));
 
