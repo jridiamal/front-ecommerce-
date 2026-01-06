@@ -10,7 +10,6 @@ import { useSession } from "next-auth/react";
 import axios from "axios";
 import { toast } from "react-toastify";
 
-/* ================== STYLES ================== */
 
 const shine = keyframes`
   0% { left: -75%; }
@@ -283,7 +282,12 @@ if (!canAddToCart) {
       triggerFlyAnimation(imageRef.current, imageRef.current.getBoundingClientRect());
     }
 
-    addProduct({ _id, color: selectedColor, image: currentImage });
+addProduct({
+  _id,
+  colorId: currentVariant?._id,
+  color: currentVariant?.color,
+  image: currentVariant?.imageUrl || currentImage,
+});
   }
 
   function selectColor(variant) {
