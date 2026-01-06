@@ -284,10 +284,11 @@ if (!canAddToCart) {
 
 addProduct({
   _id,
-  colorId: currentVariant?._id,
-  color: currentVariant?.color,
-  image: currentVariant?.imageUrl || currentImage,
+  colorId: currentVariant?._id || null,
+  color: currentVariant?.color || "default",
+  image: currentVariant?.imageUrl || images[0],
 });
+
   }
 
   function selectColor(variant) {
