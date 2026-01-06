@@ -34,9 +34,9 @@ export default async function handler(req, res) {
 
         return {
           productId: product._id.toString(),
-          productTitle: product.title,
-          reference: product.reference || "N/A",
-          color: colorVariant ? colorVariant.color : "default",
+          productTitle: product.title,             // snapshot nom produit
+          reference: product.reference || "N/A",   // snapshot reference
+          color: colorVariant ? colorVariant.color : "default", // snapshot couleur
           colorId: colorVariant ? colorVariant._id.toString() : null,
           quantity,
           price,
