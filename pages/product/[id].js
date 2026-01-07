@@ -1,101 +1,53 @@
-import Header from "@/components/Header";
-import Center from "@/components/Center";
-import Footer from "@/components/Footer";
-import styled from "styled-components";
-import { mongooseConnect } from "@/lib/mongoose";
-import { Product } from "@/models/Product";
-import { useContext, useEffect, useRef, useState } from "react";
-import { CartContext } from "@/components/CartContext";
-import { AnimationContext } from "@/components/AnimationContext";
-import { motion, AnimatePresence } from "framer-motion";
+"use client";
 
-/* ================= STYLES ================= */
+import { useEffect, useRef, useState } from "react";
+import axios from "axios";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { useCart } from "@/components/CartContext";
 
-const Page = styled.div`background:#f9fafb; min-height:100vh;`;
-const Grid = styled.div`
-  display:grid; gap:40px; margin-top:40px;
-  @media(min-width:900px){ grid-template-columns:1.1fr 1fr; }
-`;
-const Box = styled.div`
-  background:#fff; border-radius:20px; padding:25px;
-  box-shadow:0 12px 30px rgba(0,0,0,.08);
-  position:relative;
-`;
-const Ribbon = styled.div`
-  position:absolute; top:15px; left:-40px;
-  background:#ff2d2d; color:#fff;
-  padding:6px 50px; transform:rotate(-45deg);
-  font-size:.8rem;
-`;
-
-const MainImg = styled(motion.img)`
-  width:100%; height:420px; object-fit:contain;
-`;
-
-const Thumbs = styled.div`
-  display:flex; gap:10px; margin-top:15px;
-  img{
-    width:70px;height:70px;border-radius:10px;
-    cursor:pointer;border:2px solid transparent;
-  }
-  img:hover{border-color:#5542F6;}
-`;
-
-const Colors = styled.div`
-  display:flex; gap:10px; margin:20px 0;
-`;
-
-const ColorCircle = styled.button`
-  width:26px;height:26px;border-radius:50%;
-  border:2px solid ${({active})=>active?"#000":"#eee"};
-  background:${({color})=>color};
-  cursor:pointer; position:relative;
-  ${({out})=>out && `
-    opacity:.4; cursor:not-allowed;
-    &::after{
-      content:""; position:absolute; top:50%; left:-20%;
-      width:140%; height:2px; background:red;
-      transform:rotate(-45deg);
-    }
-  `}
-`;
-
-const Qty = styled.div`
-  display:flex; align-items:center; gap:15px; margin:20px 0;
-`;
-const QtyBtn = styled.button`
-  width:40px;height:40px;border-radius:10px;
-  border:1px solid #ddd; background:#fff;
-`;
-
-const AddBtn = styled.button`
-  width:100%; padding:14px;
-  border-radius:16px; border:none;
-  background:#5542F6; color:#fff;
-  font-size:1rem;
-`;
-
-/* ================= COMPONENT ================= */
-
-export default function ProductPage({ product }) {
-  const { addProduct } = useContext(CartContext);
-  const { triggerFlyAnimation } = useContext(AnimationContext);
+export default function ProductPage({ params }) {
+  const { addProduct } = useCart();
   const imgRef = useRef(null);
+  const recoImgRefs = useRef({});
 
+  const [product, setProduct] = useState(null);
+  const [recommended, setRecommended] = useState([]);
+  const [selectedColor, setSelectedColor] = useState(null);
+  const [mainImage, setMainImage] = useState(null);
+  const [qty, setQty] = useState(1);
+
+  /* ================= FETCH PRODUCT ================= */
+  useEffect(() => {
+    axios.get(`/api/products?id=${params.id}`).then(res => {
+      const p = res.data;
+      setProduct(p);
+
+      const variants = p?.properties?.colorVariants || [];
+      const firstAvailable = variants.find(v => !v.outOfStock);
+
+      if (firstAvailable) {
+        setSelectedColor(firstAvailable.color);
+        setMainImage(firstAvailable.imageUrl);
+      } else {
+        setMainImage(p.images?.[0]);
+      }
+    });
+
+    axios.get(`/api/products?recommended=true`).then(res => {
+      setRecommended(res.data);
+    });
+  }, [params.id]);
+
+  if (!product) return null;
+
+  /* ================= LOGIC ================= */
   const colorVariants = product?.properties?.colorVariants || [];
   const hasColors = colorVariants.length > 0;
 
-  const defaultVariant = hasColors
-    ? colorVariants.find(v => !v.outOfStock)
+  const currentVariant = hasColors
+    ? colorVariants.find(v => v.color === selectedColor)
     : null;
-
-  const [selectedColor, setSelectedColor] = useState(defaultVariant?.color || null);
-  const [mainImage, setMainImage] = useState(
-    defaultVariant?.imageUrl || product.images[0]
-  );
-  const [qty, setQty] = useState(1);
-
-  const currentVariant = colorVariants.find(v => v.color === selectedColor);
 
   const isRupture =
     product.stock === 0 ||
@@ -105,108 +57,140 @@ export default function ProductPage({ product }) {
     product.stock > 0 &&
     (!hasColors || (selectedColor && !currentVariant?.outOfStock));
 
-  function selectColor(variant) {
-    if (variant.outOfStock) return;
-    setSelectedColor(variant.color);
-    if (variant.imageUrl) setMainImage(variant.imageUrl);
-  }
+  /* ================= ADD TO CART ================= */
+  const addToCart = (prod, imgEl, variant = null) => {
+    let image = prod.images?.[0];
+    let color = null;
 
-  function handleAddToCart() {
-    if (!canAddToCart) return;
-
-    const imageToAdd =
-      currentVariant?.imageUrl || product.images[0];
+    if (variant) {
+      image = variant.imageUrl || image;
+      color = variant.color;
+    }
 
     addProduct({
-      _id: product._id,
-      color: selectedColor,
-      image: imageToAdd,
+      _id: prod._id,
+      title: prod.title,
+      price: prod.price,
+      image,
+      color,
       qty,
     });
-
-    if (imgRef.current) {
-      triggerFlyAnimation(imgRef.current, imgRef.current.getBoundingClientRect());
-    }
-  }
-
-  return (
-    <Page>
-      <Header />
-      <Center>
-
-        <Grid>
-          {/* IMAGE */}
-          <Box>
-            {isRupture && <Ribbon>RUPTURE</Ribbon>}
-            <AnimatePresence mode="wait">
-              <MainImg
-                key={mainImage}
-                ref={imgRef}
-                src={mainImage}
-                initial={{opacity:0,scale:.95}}
-                animate={{opacity:1,scale:1}}
-                exit={{opacity:0}}
-              />
-            </AnimatePresence>
-
-            <Thumbs>
-              {product.images.map((img,i)=>(
-                <img key={i} src={img} onClick={()=>setMainImage(img)} />
-              ))}
-            </Thumbs>
-          </Box>
-
-          {/* DETAILS */}
-          <Box>
-            <h2>{product.title}</h2>
-            <p>{product.description}</p>
-            <strong>{product.price} DT (HT)</strong>
-
-            {hasColors && (
-              <Colors>
-                {colorVariants.map((v,i)=>(
-                  <ColorCircle
-                    key={i}
-                    color={v.color}
-                    active={selectedColor===v.color}
-                    out={v.outOfStock}
-                    onClick={()=>selectColor(v)}
-                  />
-                ))}
-              </Colors>
-            )}
-
-            <Qty>
-              <QtyBtn onClick={()=>setQty(q=>Math.max(1,q-1))}>-</QtyBtn>
-              <b>{qty}</b>
-              <QtyBtn onClick={()=>setQty(q=>q+1)}>+</QtyBtn>
-            </Qty>
-
-            <AddBtn
-              disabled={!canAddToCart}
-              style={{opacity:canAddToCart?1:.5}}
-              onClick={handleAddToCart}
-            >
-              {isRupture ? "Produit épuisé" : "Ajouter au panier"}
-            </AddBtn>
-          </Box>
-        </Grid>
-
-      </Center>
-      <Footer />
-    </Page>
-  );
-}
-
-/* ================= SERVER ================= */
-
-export async function getServerSideProps({ query }) {
-  await mongooseConnect();
-  const product = await Product.findById(query.id).lean();
-
-  return {
-    props: {
-      product: JSON.parse(JSON.stringify(product)),
-    },
   };
+
+  /* ================= UI ================= */
+  return (
+    <div className="product-page">
+      <div className="grid">
+        {/* IMAGE */}
+        <img
+          ref={imgRef}
+          src={mainImage}
+          className="main-img"
+        />
+
+        {/* INFO */}
+        <div>
+          <h1>{product.title}</h1>
+          <p>{product.description}</p>
+          <h3>{product.price} DT</h3>
+
+          {/* COLORS */}
+          {hasColors && (
+            <div className="colors">
+              {colorVariants.map(v => (
+                <button
+                  key={v._id}
+                  onClick={() => {
+                    if (v.outOfStock) return;
+                    setSelectedColor(v.color);
+                    if (v.imageUrl) setMainImage(v.imageUrl);
+                  }}
+                  className={`color ${
+                    selectedColor === v.color ? "active" : ""
+                  }`}
+                  style={{
+                    background: v.color,
+                    opacity: v.outOfStock ? 0.4 : 1,
+                  }}
+                >
+                  {v.outOfStock && <span className="bar" />}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* QTY */}
+          <input
+            type="number"
+            min={1}
+            value={qty}
+            onChange={e => setQty(Number(e.target.value))}
+          />
+
+          {/* ADD */}
+          <button
+            disabled={!canAddToCart}
+            onClick={() =>
+              addToCart(product, imgRef.current, currentVariant)
+            }
+          >
+            {isRupture ? "Rupture" : "Ajouter au panier"}
+          </button>
+        </div>
+      </div>
+
+      {/* ================= RECOMMENDED ================= */}
+      <h2>Produits recommandés</h2>
+
+      <div className="reco-grid">
+        {recommended.map(p => {
+          const variants = p?.properties?.colorVariants || [];
+          const hasColors = variants.length > 0;
+
+          const defaultVariant = hasColors
+            ? variants.find(v => !v.outOfStock)
+            : null;
+
+          const isRupture =
+            p.stock === 0 || (hasColors && !defaultVariant);
+
+          const canAdd =
+            p.stock > 0 && (!hasColors || defaultVariant);
+
+          const image =
+            defaultVariant?.imageUrl || p.images?.[0];
+
+          return (
+            <motion.div key={p._id} whileHover={{ y: -5 }}>
+              {isRupture && <span className="ribbon">RUPTURE</span>}
+
+              <Link href={`/product/${p._id}`}>
+                <img
+                  ref={el => (recoImgRefs.current[p._id] = el)}
+                  src={image}
+                />
+              </Link>
+
+              <h4>{p.title}</h4>
+              <p>{p.price} DT</p>
+
+              <button
+                disabled={!canAdd}
+                onClick={() =>
+                  canAdd &&
+                  addToCart(
+                    p,
+                    recoImgRefs.current[p._id],
+                    defaultVariant
+                  )
+                }
+              >
+                Ajouter au panier
+              </button>
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
