@@ -202,7 +202,7 @@ export default function ProductBox({
 
   const defaultVariant = availableVariants[0] || null;
 
-  const [selectedColor, setSelectedColor] = useState(defaultVariant?.color || null);
+const [selectedColor, setSelectedColor] = useState(null);
   const [currentImage, setCurrentImage] = useState(
     defaultVariant?.imageUrl || images[0]
   );
@@ -237,14 +237,7 @@ const canAddToCart =
     return () => clearInterval(interval);
   }, [hovered, images, defaultVariant]);
 
-  useEffect(() => {
-    if (!currentVariant || currentVariant.outOfStock) {
-      if (defaultVariant) {
-        setSelectedColor(defaultVariant.color);
-        setCurrentImage(defaultVariant.imageUrl);
-      }
-    }
-  }, [currentVariant, defaultVariant]);
+ 
 
   async function toggleWishlist(e) {
     e.preventDefault();
@@ -270,12 +263,11 @@ const canAddToCart =
  function handleAddToCart(e) {
   e.preventDefault();
 
-  let imageToAdd = images[0]; // default image
+  let imageToAdd = images[0]; 
   let colorToAdd = null;
   let colorIdToAdd = null;
 
   if (hasColors && selectedColor) {
-    // إذا اختار لون
     imageToAdd = currentVariant?.imageUrl || images[0];
     colorToAdd = currentVariant?.color;
     colorIdToAdd = currentVariant?._id || null;
