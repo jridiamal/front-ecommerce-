@@ -1,3 +1,5 @@
+'use client';
+
 import Header from "@/components/Header";
 import Center from "@/components/Center";
 import Footer from "@/components/Footer";
@@ -20,8 +22,8 @@ function resolveVariant(product, selectedColor = null) {
     return {
       variant: null,
       image: product.images?.[0],
-      canAdd: product.stock > 0,
-      isRupture: product.stock === 0,
+      canAdd: !product.outOfStock,
+      isRupture: product.outOfStock,
     };
   }
 
@@ -83,7 +85,6 @@ export default function ProductPage({ product, recommended }) {
 
   const [selectedColor, setSelectedColor] = useState(null);
   const [mainImage, setMainImage] = useState(product.images?.[0]);
-  const [qty, setQty] = useState(1);
 
   const { variant, image, canAdd, isRupture } =
     resolveVariant(product, selectedColor);
@@ -95,9 +96,7 @@ export default function ProductPage({ product, recommended }) {
   function addToCart(prod, imgEl, variant, qty = 1) {
     if (!variant && prod.properties?.colorVariants?.length) return;
 
-    if (imgEl) {
-      triggerFlyAnimation(imgEl, imgEl.getBoundingClientRect());
-    }
+    if (imgEl) triggerFlyAnimation(imgEl, imgEl.getBoundingClientRect());
 
     addProduct({
       _id: prod._id,
@@ -114,7 +113,6 @@ export default function ProductPage({ product, recommended }) {
     <Page>
       <Header />
       <Center>
-
         <Grid>
           <Box>
             {isRupture && <Ribbon>RUPTURE</Ribbon>}
@@ -142,9 +140,11 @@ export default function ProductPage({ product, recommended }) {
                     disabled={v.outOfStock}
                     onClick={()=>setSelectedColor(v.color)}
                     style={{
-                      width:20,height:20,borderRadius:"50%",
+                      width:22,height:22,borderRadius:"50%",
                       background:v.color,
-                      opacity:v.outOfStock?.5:1
+                      border: selectedColor===v.color ? "2px solid #000" : "1px solid #ccc",
+                      opacity:v.outOfStock ? 0.4 : 1,
+                      cursor: v.outOfStock ? "not-allowed" : "pointer"
                     }}
                   />
                 ))}
@@ -153,22 +153,17 @@ export default function ProductPage({ product, recommended }) {
 
             <AddBtn
               disabled={!canAdd}
-              onClick={() =>
-                addToCart(product, imgRef.current, variant, qty)
-              }
+              onClick={() => addToCart(product, imgRef.current, variant, 1)}
             >
               {isRupture ? "Produit épuisé" : "Ajouter au panier"}
             </AddBtn>
           </Box>
         </Grid>
 
-        {/* ========== RECOMMENDED ========== */}
-
         <h2 style={{marginTop:60}}>Produits recommandés</h2>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:25}}>
           {recommended.map(p=>{
             const r = resolveVariant(p);
-
             return (
               <div key={p._id}>
                 {r.isRupture && <Ribbon>RUPTURE</Ribbon>}
@@ -191,7 +186,6 @@ export default function ProductPage({ product, recommended }) {
             );
           })}
         </div>
-
       </Center>
       <Footer />
     </Page>
