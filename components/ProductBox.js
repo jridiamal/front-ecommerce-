@@ -263,7 +263,7 @@ const canAddToCart =
  function handleAddToCart(e) {
   e.preventDefault();
 
-  let imageToAdd = images[0]; 
+  let imageToAdd = images[0]; // صورة افتراضية
   let colorToAdd = null;
   let colorIdToAdd = null;
 
@@ -271,6 +271,13 @@ const canAddToCart =
     imageToAdd = currentVariant?.imageUrl || images[0];
     colorToAdd = currentVariant?.color;
     colorIdToAdd = currentVariant?._id || null;
+  } else if (hasColors && !selectedColor) {
+    const imageWithoutColor = images.find(img =>
+      !colorVariants.some(v => v.imageUrl === img)
+    );
+    if (imageWithoutColor) {
+      imageToAdd = imageWithoutColor; 
+    }
   }
 
   if (imageRef.current) {
@@ -284,7 +291,6 @@ const canAddToCart =
     image: imageToAdd,
   });
 
-  toast.success("Produit ajouté au panier");
 }
 
   
