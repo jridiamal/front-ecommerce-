@@ -13,7 +13,6 @@ import ProductBox from "@/components/ProductBox";
 
 const accent = "#5542F6";
 
-/* ================= STYLES ================= */
 
 const Page = styled.div`
   background: #f9fafb;

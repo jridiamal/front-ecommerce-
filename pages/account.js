@@ -83,7 +83,7 @@ const DropdownMenu = styled.div`
 `;
 
 const OrdersTable = styled.table`
-  width: 100%;
+  width: 200%;
   border-collapse: collapse;
   margin-top: 15px;
 
@@ -198,7 +198,6 @@ const CancelButton = styled.button`
   @media (min-width: 768px) { width: auto; }
 `;
 
-// ===== Component Logic remains the same =====
 
 export default function AccountPage() {
   const { data: session, status } = useSession();
