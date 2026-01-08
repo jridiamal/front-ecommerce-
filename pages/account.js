@@ -83,7 +83,7 @@ const DropdownMenu = styled.div`
 `;
 
 const OrdersTable = styled.table`
-  width: 200%;
+  width: 1000%;
   border-collapse: collapse;
   margin-top: 15px;
 
