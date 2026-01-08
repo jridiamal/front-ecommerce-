@@ -5,14 +5,16 @@ import Footer from "@/components/Footer";
 import styled from "styled-components";
 import { mongooseConnect } from "@/lib/mongoose";
 import { Product } from "@/models/Product";
+import { WishedProduct } from "@/models/WishedProduct";
 import { useState, useContext, useEffect, useRef } from "react";
 import { CartContext } from "@/components/CartContext";
 import { AnimationContext } from "@/components/AnimationContext";
 import { motion } from "framer-motion";
 import ProductBox from "@/components/ProductBox";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
 
 const accent = "#5542F6";
-
 
 const Page = styled.div`
   background: #f9fafb;
@@ -168,9 +170,7 @@ const RecoCards = styled.div`
   margin-top: 25px;
 `;
 
-/* ================= COMPONENT ================= */
-
-export default function ProductPage({ product, recommended }) {
+export default function ProductPage({ product, recommended, wished }) {
   const { addProduct } = useContext(CartContext);
   const { triggerFlyAnimation } = useContext(AnimationContext);
   const imgRef = useRef(null);
@@ -192,10 +192,8 @@ export default function ProductPage({ product, recommended }) {
     ? colorVariants.find(v => v.color === selectedColor) 
     : null;
 
-  // Global out of stock logic
   const isRupture = product.stock === 0 || (selectedColor && currentVariant?.outOfStock);
 
-  // Selection logic: Can add if product has stock AND (no color selected or selected color is in stock)
   const canAddToCart = product.stock > 0 && (!selectedColor || !currentVariant?.outOfStock);
 
   function handleAddToCart() {
@@ -205,11 +203,10 @@ export default function ProductPage({ product, recommended }) {
       triggerFlyAnimation(imgRef.current, imgRef.current.getBoundingClientRect());
     }
 
-    // Loop to handle the quantity state
     for (let i = 0; i < qty; i++) {
       addProduct({
         _id: product._id,
-        image: currentImage, // Uses whatever image is currently displayed
+        image: currentImage,
         color: currentVariant?.color || null,
         colorId: currentVariant?._id || null,
       });
@@ -233,7 +230,6 @@ export default function ProductPage({ product, recommended }) {
                   src={img} 
                   onClick={() => {
                     setCurrentImage(img);
-                    // If user clicks a thumb that doesn't match selected color, deselect color
                     if (currentVariant && currentVariant.imageUrl !== img) {
                       setSelectedColor(null);
                     }
@@ -244,7 +240,13 @@ export default function ProductPage({ product, recommended }) {
           </Box>
 
           <Box initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}>
-            <Title>{product.title}</Title>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
+                <Title>{product.title}</Title>
+                <div style={{transform:'scale(0.8)'}}>
+                     <ProductBox {...product} wished={wished} />
+                </div>
+            </div>
+            
             <Desc>{product.description}</Desc>
             <Price>{product.price.toFixed(2)} DT <span>(HT)</span></Price>
 
@@ -299,17 +301,32 @@ export default function ProductPage({ product, recommended }) {
   );
 }
 
-export async function getServerSideProps({ query }) {
+export async function getServerSideProps(context) {
   await mongooseConnect();
-  const product = await Product.findById(query.id).lean();
+  const { id } = context.query;
+  const session = await getServerSession(context.req, context.res, authOptions);
+  
+  const product = await Product.findById(id).lean();
+  
+  let wished = false;
+  if (session?.user?.email) {
+    const wishEntry = await WishedProduct.findOne({
+      userEmail: session.user.email,
+      product: product._id,
+    });
+    wished = !!wishEntry;
+  }
+
   const recommended = await Product.aggregate([
     { $match: { _id: { $ne: product._id }, category: product.category } },
     { $sample: { size: 6 } }
   ]);
+
   return {
     props: {
       product: JSON.parse(JSON.stringify(product)),
       recommended: JSON.parse(JSON.stringify(recommended)),
+      wished,
     },
   };
 }

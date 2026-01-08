@@ -33,7 +33,7 @@ const HeaderRow = styled.div`
 
 const TitleGroup = styled.div`
   display: flex;
-  align-items: center; gap: 12px;
+  align-items: center; gap: 10px;
 `;
 
 

@@ -186,7 +186,10 @@ export default function ProductBox({ _id, title, price, images = [], properties,
   const isRupture = outOfStock || (selectedColor && currentVariant?.outOfStock);
   const canAddToCart = !outOfStock && (!selectedColor || !currentVariant?.outOfStock);
 
-  // Auto-cycle images on hover only if no color is selected
+  useEffect(() => {
+    setIsWished(wished);
+  }, [wished]);
+
   useEffect(() => {
     let interval;
     if (hovered && !selectedColor && images.length > 1) {
@@ -204,13 +207,18 @@ export default function ProductBox({ _id, title, price, images = [], properties,
 
   async function toggleWishlist(e) {
     e.preventDefault();
-    if (status !== "authenticated") return toast.error("Veuillez vous connecter");
-    setIsWished(!isWished);
+    if (status !== "authenticated") {
+      toast.error("Veuillez vous connecter");
+      return;
+    }
+    const nextValue = !isWished;
+    setIsWished(nextValue);
     try {
       await axios.post("/api/wishlist", { product: _id });
-      toast.success(!isWished ? "Ajouté" : "Retiré");
+      toast.success(nextValue ? "Ajouté aux favoris" : "Retiré des favoris");
     } catch {
-      setIsWished(isWished);
+      setIsWished(!nextValue);
+      toast.error("Erreur de connexion");
     }
   }
 
@@ -234,6 +242,7 @@ export default function ProductBox({ _id, title, price, images = [], properties,
     <Card>
       {isRupture && <StockRibbon><ShineEffect />Rupture</StockRibbon>}
       <ImageBox onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+        <Link href={`/product/${_id}`}>
         <AnimatePresence mode="wait">
           <AnimatedProductImg
             key={currentImage}
@@ -246,6 +255,7 @@ export default function ProductBox({ _id, title, price, images = [], properties,
             transition={{ duration: 0.3 }}
           />
         </AnimatePresence>
+        </Link>
         <IconsOverlay>
           <ActionButton type="button" className={isWished ? "wished" : ""} onClick={toggleWishlist}>
             <svg viewBox="0 0 24 24"><path d="M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"/></svg>

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import React, { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import { useSession, signIn, signOut } from "next-auth/react";
@@ -103,7 +103,7 @@ const WishlistGrid = styled.div`
   grid-template-columns: repeat(2,1fr);
   gap:10px;
   margin-top:15px;
-  @media (min-width:640px){grid-template-columns: repeat(auto-fill,minmax(180px,1fr));gap:20px;}
+  @media (min-width:640px){grid-template-columns: repeat(auto-fill,minmax(150px,1fr));gap:20px;}
 `;
 const WishItem = styled.div`
   border: 1px solid #f1f5f9;
@@ -111,8 +111,14 @@ const WishItem = styled.div`
   border-radius: 12px;
   text-align: center;
   background: #fff;
-  img { width: 100%; height: 120px; object-fit: contain; }
-  p { font-size: 13px; margin: 8px 0 0; font-weight: 600; color: #334155; }
+  cursor: pointer;
+  transition: transform 0.2s;
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  }
+  img { width: 100%; height: 120px; object-fit: contain; margin-bottom: 8px; }
+  p { font-size: 13px; margin: 0; font-weight: 600; color: #334155; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 `;
 const ProductList = styled.div`display:flex; flex-direction:column; gap:10px;`;
 const ProductItem = styled.div`display:flex; align-items:center; gap:12px;`;
@@ -142,6 +148,19 @@ const CancelButton = styled.button`
   width:100%;
   @media(min-width:768px){width:auto;}
 `;
+const BackButton = styled.button`
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  &:hover { background: #f1f5f9; }
+`;
 
 export default function AccountPage(){
   const { data: session, status } = useSession();
@@ -149,9 +168,8 @@ export default function AccountPage(){
   const [orders, setOrders] = useState([]);
   const [historique, setHistorique] = useState([]);
   const [wishlist, setWishlist] = useState([]);
-  const [showHistorique, setShowHistorique] = useState(false);
+  const [activeView, setActiveView] = useState('dashboard');
 
-  // Fetch Orders & Wishlist & Historique
   useEffect(()=>{
     if(status==="authenticated"){
       fetch("/api/orders").then(res=>res.json()).then(data=>{
@@ -176,8 +194,11 @@ export default function AccountPage(){
       });
       if(res.ok){
         toast.success("Commande annulée");
-        setOrders(orders.map(o=>o._id===orderId?{...o,status:"Annulée"}:o));
-        setHistorique(prev=>[...prev, ...orders.filter(o=>o._id===orderId)]);
+        const cancelled = orders.find(o => o._id === orderId);
+        setOrders(orders.filter(o=>o._id!==orderId));
+        if(cancelled) {
+            setHistorique(prev=>[...prev, {...cancelled, status:"Annulée"}]);
+        }
       }
     }catch(err){toast.error("Erreur");}
   };
@@ -207,141 +228,155 @@ export default function AccountPage(){
     <>
       <Header/>
       <Container>
-        {/* PROFILE */}
-        <Card>
-          <ProfileSection>
-            <AvatarWrapper onClick={()=>setIsDropdownOpen(!isDropdownOpen)}>
-              <AvatarImage src={session.user?.image||"/avatar.png"} active={isDropdownOpen}/>
-              {isDropdownOpen && (
-                <DropdownMenu>
-                  <p style={{margin:0,fontSize:'12px',color:'#64748b'}}>Connecté en tant que</p>
-                  <p style={{margin:'4px 0 12px 0', fontWeight:700}}>{session.user?.email}</p>
+        {activeView === 'history' ? (
+             <Card>
+               <BackButton onClick={() => setActiveView('dashboard')}>
+                  ← Retour au tableau de bord
+               </BackButton>
+               
+               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: '20px' }}>
+                 <h3 style={{ fontSize: "18px", margin: 0 }}>📜 Historique des commandes</h3>
+                 {historique.length > 0 && (
+                   <button onClick={handleDeleteHistorique} style={{ background: "#fee2e2", color: "#991b1b", border: "1px solid #fecaca", borderRadius: "8px", padding: "6px 10px", cursor: "pointer", fontSize: "12px" }}>
+                     🗑️ Tout supprimer
+                   </button>
+                 )}
+               </div>
+  
+               {!historique.length ? <p>Aucun historique.</p> : (
+                 <OrdersTable>
+                   <thead>
+                      <tr>
+                          <TableHeader>Statut</TableHeader>
+                          <TableHeader>Date</TableHeader>
+                          <TableHeader>Produits</TableHeader>
+                      </tr>
+                   </thead>
+                   <tbody>
+                     {historique.map(order => (
+                       <tr key={order._id}>
+                         <TableCell data-label="Statut"><StatusBadge status={order.status}>{order.status}</StatusBadge></TableCell>
+                         <TableCell data-label="Date">{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                         <TableCell data-label="Produits">
+                           <ProductList>
+                             {order.line_items.map((item, i) => (
+                               <ProductItem key={i}>
+                                 <ProductImage src={item.image} alt="" />
+                                 <ProductText>
+                                   <p><b>{item.name}</b></p>
+                                   <p>Qté: {item.quantity} | {item.price} DT</p>
+                                 </ProductText>
+                               </ProductItem>
+                             ))}
+                           </ProductList>
+                         </TableCell>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </OrdersTable>
+               )}
+             </Card>
+        ) : (
+          <>
+            <Card>
+              <ProfileSection>
+                <AvatarWrapper onClick={()=>setIsDropdownOpen(!isDropdownOpen)}>
+                  <AvatarImage src={session.user?.image||"/avatar.png"} active={isDropdownOpen}/>
+                  {isDropdownOpen && (
+                    <DropdownMenu>
+                      <p style={{margin:0,fontSize:'12px',color:'#64748b'}}>Connecté en tant que</p>
+                      <p style={{margin:'4px 0 12px 0', fontWeight:700}}>{session.user?.email}</p>
 
-                  <button
-                    onClick={()=>setShowHistorique(!showHistorique)}
-                    style={{width:'100%',padding:'8px',marginBottom:'8px',background:'#f1f5f9',border:'1px solid #e2e8f0',borderRadius:'6px',cursor:'pointer',fontWeight:600, display:'flex', alignItems:'center', justifyContent:'space-between'}}
-                  >
-                    📜 Historique
-                    {historique.length > 0 && !showHistorique && (
-                      <span style={{
-                        display:"inline-block",
-                        width:"10px",
-                        height:"10px",
-                        borderRadius:"50%",
-                        background:"#ef4444"
-                      }}></span>
-                    )}
-                  </button>
+                      <button
+                        onClick={()=>{
+                            setActiveView('history');
+                            setIsDropdownOpen(false);
+                        }}
+                        style={{width:'100%',padding:'8px',marginBottom:'8px',background:'#f1f5f9',border:'1px solid #e2e8f0',borderRadius:'6px',cursor:'pointer',fontWeight:600, display:'flex', alignItems:'center', justifyContent:'space-between'}}
+                      >
+                        📜 Historique
+                        {historique.length > 0 && (
+                          <span style={{
+                            display:"inline-block",
+                            width:"10px",
+                            height:"10px",
+                            borderRadius:"50%",
+                            background:"#ef4444"
+                          }}></span>
+                        )}
+                      </button>
 
-                  <button
-                    onClick={()=>signOut()}
-                    style={{width:'100%', padding:'8px', background:'#ef4444', color:'white', border:'none', borderRadius:'6px', cursor:'pointer'}}
-                  >
-                    Se déconnecter
-                  </button>
-                </DropdownMenu>
-              )}
-            </AvatarWrapper>
+                      <button
+                        onClick={()=>signOut()}
+                        style={{width:'100%', padding:'8px', background:'#ef4444', color:'white', border:'none', borderRadius:'6px', cursor:'pointer'}}
+                      >
+                        Se déconnecter
+                      </button>
+                    </DropdownMenu>
+                  )}
+                </AvatarWrapper>
 
-            <div>
-              <h2 style={{margin:0,fontSize:'1.4rem'}}>Bonjour, {session.user?.name}</h2>
-              <p style={{margin:0,color:'#64748b', fontSize:'14px'}}>Gérez vos commandes et favoris</p>
-            </div>
-          </ProfileSection>
-        </Card>
+                <div>
+                  <h2 style={{margin:0,fontSize:'1.4rem'}}>Bonjour, {session.user?.name}</h2>
+                  <p style={{margin:0,color:'#64748b', fontSize:'14px'}}>Gérez vos commandes et favoris</p>
+                </div>
+              </ProfileSection>
+            </Card>
 
-        <Card>
-          <h3 style={{fontSize:'18px', marginBottom:'15px'}}>❤️ Mes Favoris</h3>
-          {!wishlist.length ? <p>Aucun favori.</p> : (
-            <WishlistGrid>
-              {wishlist.map(w=>w.product&&(
-                <Link href={`/product/${w.product._id}`} key={w._id} style={{textDecoration:'none'}}>
-                  <WishItem>
-                    <img src={w.product.images?.[0]} alt=""/>
-                    <p>{w.product.title}</p>
-                  </WishItem>
-                </Link>
-              ))}
-            </WishlistGrid>
-          )}
-        </Card>
-
-        <Card>
-          <h3 style={{fontSize:'18px', marginBottom:'15px'}}>📦 Mes Commandes</h3>
-          {!orders.length ? <p>Aucune commande.</p> : (
-            <OrdersTable>
-              <thead>
-                <tr>
-                  <TableHeader>Statut</TableHeader>
-                  <TableHeader>Date</TableHeader>
-                  <TableHeader>Produits</TableHeader>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map(order=>(
-                  <tr key={order._id}>
-                    <TableCell data-label="Statut"><StatusBadge status={order.status}>{order.status}</StatusBadge></TableCell>
-                    <TableCell data-label="Date">{new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell data-label="Produits">
-                      <ProductList>
-                        {order.line_items.map((item,i)=>(
-                          <ProductItem key={i}>
-                            <ProductImage src={item.image} alt=""/>
-                            <ProductText>
-                              <p><b>{item.name}</b></p>
-                              <p>Qté: {item.quantity} | {item.price} DT</p>
-                            </ProductText>
-                          </ProductItem>
-                        ))}
-                      </ProductList>
-                      {order.status==="En attente" && <CancelButton onClick={()=>handleCancelOrder(order._id)}>Annuler la commande</CancelButton>}
-                    </TableCell>
-                  </tr>
-                ))}
-              </tbody>
-            </OrdersTable>
-          )}
-        </Card>
-
-        {/* HISTORIQUE */}
-        {showHistorique && (
-          <Card>
-            <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
-              <h3 style={{fontSize:"18px"}}>📜 Historique des commandes</h3>
-              <button onClick={handleDeleteHistorique}
-                style={{background:"#fee2e2",color:"#991b1b",border:"1px solid #fecaca",borderRadius:"8px",padding:"6px 10px",cursor:"pointer",fontSize:"12px"}}
-              >
-                🗑️ Tout supprimer
-              </button>
-            </div>
-            {!historique.length ? <p style={{marginTop:"10px"}}>Aucun historique.</p> : (
-              <OrdersTable>
-                <tbody>
-                  {historique.map(order=>(
-                    <tr key={order._id}>
-                      <TableCell data-label="Statut"><StatusBadge status={order.status}>{order.status}</StatusBadge></TableCell>
-                      <TableCell data-label="Date">{new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                      <TableCell data-label="Produits">
-                        <ProductList>
-                          {order.line_items.map((item,i)=>(
-                            <ProductItem key={i}>
-                              <ProductImage src={item.image} alt=""/>
-                              <ProductText>
-                                <p><b>{item.name}</b></p>
-                                <p>Qté: {item.quantity} | {item.price} DT</p>
-                              </ProductText>
-                            </ProductItem>
-                          ))}
-                        </ProductList>
-                      </TableCell>
-                    </tr>
+            <Card>
+              <h3 style={{fontSize:'18px', marginBottom:'15px'}}>❤️ Mes Favoris</h3>
+              {!wishlist.length ? <p>Aucun favori.</p> : (
+                <WishlistGrid>
+                  {wishlist.map(w=>w.product&&(
+                    <Link href={`/product/${w.product._id}`} key={w._id} style={{textDecoration:'none'}}>
+                      <WishItem>
+                        <img src={w.product.images?.[0]} alt=""/>
+                        <p>{w.product.title}</p>
+                      </WishItem>
+                    </Link>
                   ))}
-                </tbody>
-              </OrdersTable>
-            )}
-          </Card>
-        )}
+                </WishlistGrid>
+              )}
+            </Card>
 
+            <Card>
+              <h3 style={{fontSize:'18px', marginBottom:'15px'}}>📦 Mes Commandes</h3>
+              {!orders.length ? <p>Aucune commande.</p> : (
+                <OrdersTable>
+                  <thead>
+                    <tr>
+                      <TableHeader>Statut</TableHeader>
+                      <TableHeader>Date</TableHeader>
+                      <TableHeader>Produits</TableHeader>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.map(order=>(
+                      <tr key={order._id}>
+                        <TableCell data-label="Statut"><StatusBadge status={order.status}>{order.status}</StatusBadge></TableCell>
+                        <TableCell data-label="Date">{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                        <TableCell data-label="Produits">
+                          <ProductList>
+                            {order.line_items.map((item,i)=>(
+                              <ProductItem key={i}>
+                                <ProductImage src={item.image} alt=""/>
+                                <ProductText>
+                                  <p><b>{item.name}</b></p>
+                                  <p>Qté: {item.quantity} | {item.price} DT</p>
+                                </ProductText>
+                              </ProductItem>
+                            ))}
+                          </ProductList>
+                          {order.status==="En attente" && <CancelButton onClick={()=>handleCancelOrder(order._id)}>Annuler la commande</CancelButton>}
+                        </TableCell>
+                      </tr>
+                    ))}
+                  </tbody>
+                </OrdersTable>
+              )}
+            </Card>
+          </>
+        )}
         <ToastContainer position="bottom-center" />
       </Container>
     </>
