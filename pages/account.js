@@ -186,7 +186,7 @@ export default function AccountPage(){
   const handleDeleteHistorique = async()=>{
     if(!window.confirm("Supprimer tout l’historique ?")) return;
     try{
-      const res = await fetch("/api/orders/historique",{method:"DELETE"});
+      const res = await fetch("/api/historique",{method:"DELETE"});
       if(res.ok){
         setHistorique([]);
         toast.success("Historique supprimé");
@@ -208,7 +208,6 @@ export default function AccountPage(){
     <>
       <Header/>
       <Container>
-        {/* Profile Card */}
         <Card>
           <ProfileSection>
             <AvatarWrapper onClick={()=>setIsDropdownOpen(!isDropdownOpen)}>
