@@ -9,6 +9,7 @@ import { useState, useContext, useRef, useEffect } from "react";
 import { CartContext } from "@/components/CartContext";
 import { AnimationContext } from "@/components/AnimationContext";
 import { motion } from "framer-motion";
+import ProductBox from "@/components/ProductBox";
 
 const accent = "#5542F6";
 
@@ -110,6 +111,54 @@ const Ribbon = styled.div`
   font-size: .8rem;
 `;
 
+const ColorWrapper = styled.div`
+  display: flex;
+  gap: 12px;
+  margin: 15px 0;
+`;
+
+const ColorCircle = styled.button`
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid ${({ active }) => (active ? "#000" : "#eee")};
+  background-color: ${({ color }) => color};
+  cursor: pointer;
+  position: relative;
+
+  ${({ isOutOfStock }) => isOutOfStock && `
+    &::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: -20%;
+      width: 140%;
+      height: 2px;
+      background: red;
+      transform: rotate(-45deg);
+    }
+    opacity: .5;
+    cursor: not-allowed;
+  `}
+`;
+
+const Title = styled.h3`
+  font-size: 1.2rem;
+  font-weight: 600;
+`;
+
+const Price = styled.div`
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: blue;
+
+  span {
+    font-size: .8rem;
+    color: red;
+    margin-left: 5px;
+  }
+`;
+
 const RecoGrid = styled.div`
   margin-top: 70px;
 `;
@@ -121,91 +170,63 @@ const RecoCards = styled.div`
   margin-top: 25px;
 `;
 
-const RecoCard = styled(motion.div)`
-  background: white;
-  border-radius: 18px;
-  padding: 15px;
-  text-align: center;
-  position: relative;
-  box-shadow: 0 8px 25px rgba(0,0,0,.08);
-
-  img {
-    width: 100%;
-    height: 170px;
-    object-fit: contain;
-    border-radius: 12px;
-  }
-`;
-
-const Price = styled.div`
-  font-size: 1rem;
-  font-weight: 600;
-  color: blue;
-  margin-top: 8px;
-
-  span {
-    font-size: .8rem;
-    color: #dc3545;
-    margin-left: 4px;
-  }
-`;
-
-const Title = styled.h3`
-  font-size: .95rem;
-  font-weight: 500;
-  color: #111;
-  margin: 8px 0;
-`;
-
 /* ================= COMPONENT ================= */
 
 export default function ProductPage({ product, recommended }) {
   const { addProduct } = useContext(CartContext);
   const { triggerFlyAnimation } = useContext(AnimationContext);
   const imgRef = useRef(null);
-const recoImgRefs = useRef({});
 
-  const [mainImage, setMainImage] = useState(product.images?.[0]);
-  const [qty, setQty] = useState(1);
-
-  useEffect(() => {
-    setMainImage(product.images?.[0]);
-    setQty(1);
-  }, [product._id]);
-
-  /* ===== SAME LOGIC AS ProductBox ===== */
-
-  const outOfStock = product.stock === 0;
   const colorVariants = product?.properties?.colorVariants || [];
   const hasColors = colorVariants.length > 0;
 
-  const defaultVariant = hasColors
-    ? colorVariants.find(v => !v.outOfStock)
+  const [selectedColor, setSelectedColor] = useState(null);
+  const [currentImage, setCurrentImage] = useState(product.images?.[0]);
+  const [qty, setQty] = useState(1);
+
+  useEffect(() => {
+    setSelectedColor(null);
+    setCurrentImage(product.images?.[0]);
+    setQty(1);
+  }, [product._id]);
+
+  const currentVariant = hasColors
+    ? colorVariants.find(v => v.color === selectedColor)
     : null;
 
-  const currentVariant = defaultVariant;
-
   const isRupture =
-    outOfStock || (hasColors && currentVariant?.outOfStock);
+    product.stock === 0 ||
+    (hasColors && selectedColor && currentVariant?.outOfStock);
 
   const canAddToCart =
-    !outOfStock && (!hasColors || currentVariant);
+    product.stock > 0 &&
+    (!hasColors || (selectedColor && !currentVariant?.outOfStock));
 
-  /* ===== ADD TO CART ===== */
-
-  const addToCart = (prod, imgEl) => {
+  function handleAddToCart() {
     if (!canAddToCart) return;
 
-    if (imgEl) {
-      triggerFlyAnimation(imgEl, imgEl.getBoundingClientRect());
+    let imageToAdd = product.images[0];
+    let colorToAdd = null;
+    let colorIdToAdd = null;
+
+    if (hasColors && selectedColor) {
+      imageToAdd = currentVariant?.imageUrl || product.images[0];
+      colorToAdd = currentVariant?.color;
+      colorIdToAdd = currentVariant?._id;
+    }
+
+    if (imgRef.current) {
+      triggerFlyAnimation(imgRef.current, imgRef.current.getBoundingClientRect());
     }
 
     addProduct({
-      _id: prod._id,
-      image: prod.images?.[0],
-      color: hasColors ? currentVariant?.color : "default",
+      _id: product._id,
+      image: imageToAdd,
+      color: colorToAdd,
+      colorId: colorIdToAdd,
+      quantity: qty,
     });
-  };
+  }
 
   return (
     <Page>
@@ -213,17 +234,16 @@ const recoImgRefs = useRef({});
 
       <Center>
         <Grid>
-
           <Box initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}>
             {isRupture && <Ribbon>RUPTURE</Ribbon>}
 
             <ImgWrapper ref={imgRef}>
-              <MainImg src={mainImage} />
+              <MainImg src={currentImage} />
             </ImgWrapper>
 
             <Thumbs>
               {product.images.map((img, i) => (
-                <img key={i} src={img} onClick={() => setMainImage(img)} />
+                <img key={i} src={img} onClick={() => setCurrentImage(img)} />
               ))}
             </Thumbs>
           </Box>
@@ -232,6 +252,24 @@ const recoImgRefs = useRef({});
             <Title>{product.title}</Title>
             <Desc>{product.description}</Desc>
             <Price>{product.price.toFixed(2)} DT <span>(HT)</span></Price>
+
+            {hasColors && (
+              <ColorWrapper>
+                {colorVariants.map((v, i) => (
+                  <ColorCircle
+                    key={i}
+                    color={v.color}
+                    active={selectedColor === v.color}
+                    isOutOfStock={v.outOfStock}
+                    onClick={() => {
+                      if (v.outOfStock) return;
+                      setSelectedColor(v.color);
+                      if (v.imageUrl) setCurrentImage(v.imageUrl);
+                    }}
+                  />
+                ))}
+              </ColorWrapper>
+            )}
 
             <Qty>
               <QtyBtn onClick={() => setQty(q => Math.max(1, q - 1))}>-</QtyBtn>
@@ -245,63 +283,22 @@ const recoImgRefs = useRef({});
                 opacity: canAddToCart ? 1 : .5,
                 cursor: canAddToCart ? "pointer" : "not-allowed",
               }}
-              onClick={() => addToCart(product, imgRef.current)}
+              onClick={handleAddToCart}
             >
               {isRupture ? "Produit épuisé" : "Ajouter au panier"}
             </AddBtn>
           </Box>
-
         </Grid>
 
-        {/* ========== RECOMMENDED ========== */}
-
+        {/* RECOMMENDED */}
         <RecoGrid>
           <h2>Produits recommandés</h2>
-
           <RecoCards>
-            {recommended.map(p => {
-              const recoOut = p.stock === 0;
-              const recoVariants = p?.properties?.colorVariants || [];
-              const recoHasColors = recoVariants.length > 0;
-              const recoVariant = recoHasColors
-                ? recoVariants.find(v => !v.outOfStock)
-                : null;
-
-              const recoCanAdd =
-                !recoOut && (!recoHasColors || recoVariant);
-
-
-              return (
-                <RecoCard key={p._id} whileHover={{ y: -10 }}>
-                  <Link href={`/product/${p._id}`}>
-<img
-  ref={(el) => (recoImgRefs.current[p._id] = el)}
-  src={p.images?.[0]}
-/>
-                  </Link>
-
-                  <Title>{p.title}</Title>
-                  <Price>{p.price.toFixed(2)} DT <span>(HT)</span></Price>
-
-                  <AddBtn
-                    disabled={!recoCanAdd}
-                    style={{
-                      opacity: recoCanAdd ? 1 : .5,
-                      cursor: recoCanAdd ? "pointer" : "not-allowed",
-                    }}
-                    onClick={() =>
-                      recoCanAdd &&
-                      addToCart(p, recoImgRef.current)
-                    }
-                  >
-                    Ajouter au panier
-                  </AddBtn>
-                </RecoCard>
-              );
-            })}
+            {recommended.map(p => (
+              <ProductBox key={p._id} {...p} />
+            ))}
           </RecoCards>
         </RecoGrid>
-
       </Center>
 
       <Footer />

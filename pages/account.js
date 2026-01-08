@@ -7,88 +7,73 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Link from "next/link";
 
-// ===== Updated Styled Components for Perfect Responsiveness =====
+// ===== Styled Components avec Responsive Design Optimisé =====
+
 const Container = styled.div`
   min-height: calc(100vh - 80px);
-  padding: 15px; /* Smaller padding for mobile */
-  margin-top: 80px; 
-  
+  padding: 10px;
+  margin-top: 80px;
+  background-color: #f8fafc;
+
   @media (min-width: 768px) {
-    padding: 30px; /* Larger padding for laptops */
+    padding: 30px;
   }
 `;
 
 const Card = styled.div`
   background: #fff;
   border-radius: 12px;
-  padding: 20px;
+  padding: 15px;
   max-width: 1000px;
-  margin: 0 auto 20px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  margin: 0 auto 15px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 
   @media (min-width: 768px) {
     padding: 25px;
-    margin-bottom: 30px;
+    margin-bottom: 25px;
   }
 `;
 
 const ProfileSection = styled.div`
   display: flex;
-  flex-direction: column; /* Stack vertically on mobile */
+  flex-direction: column;
   align-items: center;
   text-align: center;
   gap: 15px;
-  margin-bottom: 20px;
 
   @media (min-width: 640px) {
-    flex-direction: row; /* Horizontal on laptop */
+    flex-direction: row;
     text-align: left;
   }
 `;
 
-const GoogleButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 20px;
-  padding: 12px 20px;
-  width: 100%;
-  max-width: 400px; /* Prevents button from being too wide on PC */
-  margin-left: auto;
-  margin-right: auto;
-  font-weight: 600;
-  font-size: 15px;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  background-color: #fff;
-  cursor: pointer;
-  transition: all 0.2s;
-  &:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+const AvatarWrapper = styled.div`
+  position: relative;
+  z-index: 20;
 `;
 
-const AvatarWrapper = styled.div`position: relative;`;
 const AvatarImage = styled.img`
   border-radius: 50%;
-  width: 70px;
-  height: 70px;
+  width: 65px;
+  height: 65px;
   object-fit: cover;
-  border: ${props => (props.active ? "3px solid #2563eb" : "2px solid #e5e7eb")};
+  border: ${props => (props.active ? "3px solid #2563eb" : "2px solid #e2e8f0")};
   cursor: pointer;
+  transition: all 0.2s;
 `;
 
 const DropdownMenu = styled.div`
   position: absolute;
-  top: calc(100% + 10px);
-  left: 50%; /* Center dropdown on mobile */
+  top: 100%;
+  left: 50%;
   transform: translateX(-50%);
+  margin-top: 10px;
   background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
-  min-width: 220px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  min-width: 240px;
   padding: 15px;
-  font-size: 14px;
-  z-index: 10;
+  z-index: 100;
 
   @media (min-width: 640px) {
     left: 0;
@@ -99,70 +84,108 @@ const DropdownMenu = styled.div`
 const OrdersTable = styled.table`
   width: 100%;
   border-collapse: collapse;
-  margin-top: 25px;
-  font-size: 14px;
+  margin-top: 15px;
 
-  /* Responsive Table Trick */
+  /* Transformation du tableau pour Mobile */
   @media (max-width: 768px) {
     display: block;
-    thead { display: none; } /* Hide headers on mobile */
+    thead { display: none; }
     tr {
       display: block;
-      border: 1px solid #eee;
+      border: 1px solid #edf2f7;
+      border-radius: 10px;
       margin-bottom: 15px;
       padding: 10px;
-      border-radius: 8px;
     }
     td {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      padding: 8px 0;
+      align-items: center;
       border: none;
-      text-align: right;
+      padding: 8px 0;
+      font-size: 13px;
+      &:not(:last-child) { border-bottom: 1px inset #f7fafc; }
       &:before {
-        content: attr(data-label); /* Uses the label we add below */
-        font-weight: bold;
-        text-align: left;
+        content: attr(data-label);
+        font-weight: 700;
+        color: #4a5568;
       }
     }
   }
 `;
 
-const TableHead = styled.thead`background: #f3f4f6;`;
-const TableRow = styled.tr`&:nth-child(even) { background: #f9fafb; }`;
-const TableHeader = styled.th`padding: 12px; text-align: left; font-weight: 600;`;
-const TableCell = styled.td`padding: 12px; vertical-align: top;`;
+const TableHeader = styled.th`
+  text-align: left;
+  padding: 12px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 13px;
+  border-bottom: 2px solid #e2e8f0;
+`;
+
+const TableCell = styled.td`
+  padding: 12px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+`;
 
 const WishlistGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, 1fr); /* 2 items per row on mobile */
-  gap: 15px;
-  margin-top: 20px;
+  grid-template-columns: repeat(2, 1fr); /* 2 colonnes sur mobile */
+  gap: 12px;
+  margin-top: 15px;
 
   @media (min-width: 640px) {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* Auto on laptop */
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 20px;
   }
 `;
 
 const WishItem = styled.div`
-  border: 1px solid #eee;
+  border: 1px solid #f1f5f9;
   padding: 10px;
-  border-radius: 10px;
+  border-radius: 12px;
   text-align: center;
-  img { width: 100%; height: 100px; object-fit: contain; }
-  p { font-size: 13px; margin: 5px 0; font-weight: 500; }
+  background: #fff;
+  img { width: 100%; height: 90px; object-fit: contain; }
+  p { font-size: 12px; margin: 8px 0 0; font-weight: 600; color: #334155; }
 `;
 
-// Remaining components (CancelButton, StatusBadge, ProductList, etc.) kept as-is
-const LogoutButton = styled.button` width: 100%; padding: 10px; background-color: #ef4444; color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 10px; &:hover { background-color: #b91c1c; } `;
-const CancelButton = styled.button` padding: 6px 12px; background-color: #f97316; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; margin-top: 8px; transition: background-color 0.2s; &:hover { background-color: #c2410c; } `;
-const StatusBadge = styled.span` padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 13px; color: ${props => (props.status === "Prête" ? "#166534" : "#4b5563")}; background-color: ${props => (props.status === "Prête" ? "#d1fae5" : "#f3f4f6")}; `;
-const ProductList = styled.div`display: flex; flex-direction: column; gap: 8px;`;
-const ProductItem = styled.div`display: flex; align-items: center; gap: 10px;`;
-const ProductImage = styled.img`width: 45px; height: 45px; border-radius: 6px; object-fit: cover;`;
-const ProductText = styled.div`p { margin: 0; line-height: 1.3; font-size: 13px; color: #374151; }`;
+const StatusBadge = styled.span`
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  background: ${props => props.status === "Prête" ? "#dcfce7" : "#f1f5f9"};
+  color: ${props => props.status === "Prête" ? "#166534" : "#475569"};
+`;
+
+const ProductItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  @media (max-width: 768px) { justify-content: flex-end; }
+`;
+
+const GoogleButton = styled.button`
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; max-width: 320px; margin: 20px auto; padding: 12px;
+  border: 1px solid #e2e8f0; background: white; border-radius: 8px;
+  font-weight: 600; cursor: pointer;
+`;
+
+const LogoutButton = styled.button`
+  width: 100%; padding: 10px; background: #ef4444; color: white;
+  border: none; border-radius: 8px; margin-top: 10px; cursor: pointer;
+`;
+
+const CancelButton = styled.button`
+  padding: 5px 10px; background: #fff1f2; color: #be123c;
+  border: 1px solid #fecdd3; border-radius: 6px; font-size: 11px;
+  cursor: pointer; margin-top: 5px;
+`;
+
+// ===== Logique du Composant =====
 
 export default function AccountPage() {
   const { data: session, status } = useSession();
@@ -172,115 +195,119 @@ export default function AccountPage() {
 
   useEffect(() => {
     if(status === "authenticated") {
-      fetch('/api/orders').then(res => res.json()).then(data => Array.isArray(data) && setOrders(data)).catch(err => console.error(err));
-      fetch('/api/wishlist').then(res => res.json()).then(data => Array.isArray(data) && setWishlist(data)).catch(err => console.error(err));
+      fetch('/api/orders').then(res => res.json()).then(data => Array.isArray(data) && setOrders(data));
+      fetch('/api/wishlist').then(res => res.json()).then(data => Array.isArray(data) && setWishlist(data));
     }
-  }, [session, status]);
+  }, [status]);
 
   const handleCancelOrder = async (orderId) => {
-    if(!window.confirm("Voulez-vous vraiment annuler cette commande ?")) return;
-    try{
-      const res = await fetch("/api/orders", { method:"DELETE", headers:{ "Content-Type": "application/json" }, body: JSON.stringify({ orderId }), });
-      const data = await res.json();
-      if(res.ok){ toast.success(data.message); setOrders(orders.map(o => o._id === orderId ? {...o, status:"Annulée"} : o));
-      }else toast.error(data.error);
-    }catch(err){ toast.error("Erreur serveur !"); }
+    if(!window.confirm("Annuler cette commande ?")) return;
+    try {
+      const res = await fetch("/api/orders", {
+        method:"DELETE",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({orderId})
+      });
+      if(res.ok) {
+        toast.success("Commande annulée");
+        setOrders(orders.map(o => o._id === orderId ? {...o, status:"Annulée"} : o));
+      }
+    } catch(err) { toast.error("Erreur"); }
   };
 
-  if(status === "loading") return <><Header/><Container><p>Chargement...</p></Container></>;
+  if(status === "loading") return <><Header/><Container>Chargement...</Container></>;
 
   if(!session) return (
-    <>
-      <Header/>
-      <Container>
-        <Card style={{textAlign:'center'}}>
-          <h2>Connexion à votre compte</h2>
-          <GoogleButton onClick={()=>signIn("google",{ callbackUrl:"/account" })}>
-            <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" style={{width:20}}/>
-            <span>Se connecter avec Google</span>
-          </GoogleButton>
-        </Card>
-      </Container>
-    </>
+    <><Header/><Container><Card style={{textAlign:'center'}}>
+      <h2>Mon Compte</h2>
+      <GoogleButton onClick={()=>signIn("google")}>
+        <img src="https://developers.google.com/identity/images/g-logo.png" width="18" alt=""/>
+        Continuer avec Google
+      </GoogleButton>
+    </Card></Container></>
   );
 
   return (
     <>
       <Header/>
       <Container>
+        {/* Header Profil */}
         <Card>
           <ProfileSection>
             <AvatarWrapper onClick={()=>setIsDropdownOpen(!isDropdownOpen)}>
-              <AvatarImage src={session.user?.image || "/default-avatar.png"} alt="Avatar" active={isDropdownOpen}/>
+              <AvatarImage src={session.user?.image || "/avatar.png"} active={isDropdownOpen}/>
               {isDropdownOpen && (
                 <DropdownMenu>
-                  <p>Connecté en tant que <b>{session.user?.email}</b></p>
-                  <LogoutButton onClick={()=>signOut({callbackUrl:"/account"})}>Se déconnecter</LogoutButton>
+                  <p style={{margin:0, fontSize:'12px', color:'#64748b'}}>Connecté en tant que</p>
+                  <p style={{margin:'4px 0 12px 0', fontWeight:700}}>{session.user?.email}</p>
+                  <LogoutButton onClick={()=>signOut()}>Se déconnecter</LogoutButton>
                 </DropdownMenu>
               )}
             </AvatarWrapper>
             <div>
-              <h2 style={{margin:0}}>Bienvenue, {session.user?.name}</h2>
-              <p style={{fontSize:"14px", color:"#6b7280", margin:0}}>Gérez votre profil et vos commandes</p>
+              <h2 style={{margin:0, fontSize:'1.25rem'}}>Bonjour, {session.user?.name}</h2>
+              <p style={{margin:0, color:'#64748b', fontSize:'14px'}}>Bienvenue sur votre espace personnel</p>
             </div>
           </ProfileSection>
         </Card>
 
+        {/* Favoris */}
         <Card>
-          <h3>❤️ Ma Liste de Souhaits</h3>
-          {(!wishlist || wishlist.length===0) ? <p>Aucun favori.</p> :
+          <h3 style={{fontSize:'16px', margin:0}}>❤️ Ma Liste de Souhaits</h3>
+          {!wishlist.length ? <p style={{fontSize:'13px', color:'#94a3b8', marginTop:'10px'}}>Aucun favori pour le moment.</p> : (
             <WishlistGrid>
               {wishlist.map(w => w.product && (
-                <Link href={`/product/${w.product._id}`} key={w._id} style={{textDecoration:'none', color:'inherit'}}>
+                <Link href={`/product/${w.product._id}`} key={w._id} style={{textDecoration:'none'}}>
                   <WishItem>
-                    <img src={w.product.images?.[0]} alt={w.product.title}/>
+                    <img src={w.product.images?.[0]} alt=""/>
                     <p>{w.product.title}</p>
                   </WishItem>
                 </Link>
               ))}
             </WishlistGrid>
-          }
+          )}
         </Card>
 
+        {/* Commandes */}
         <Card>
-          <h3>📦 Historique des Commandes</h3>
-          {orders.length===0 ? <p>Aucune commande.</p> :
+          <h3 style={{fontSize:'16px', margin:0}}>📦 Historique des Commandes</h3>
+          {!orders.length ? <p style={{fontSize:'13px', color:'#94a3b8', marginTop:'10px'}}>Aucune commande effectuée.</p> : (
             <OrdersTable>
-              <TableHead>
-                <TableRow>
+              <thead>
+                <tr>
                   <TableHeader>Statut</TableHeader>
                   <TableHeader>Date</TableHeader>
-                  <TableHeader>Produits & Total</TableHeader>
-                </TableRow>
-              </TableHead>
+                  <TableHeader>Détails</TableHeader>
+                </tr>
+              </thead>
               <tbody>
                 {orders.map(order => (
-                  <TableRow key={order._id}>
-                    <TableCell data-label="Statut"><StatusBadge status={order.status}>{order.status}</StatusBadge></TableCell>
-                    <TableCell data-label="Date">{new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell data-label="Détails">
-                      <ProductList>
-                        {order.line_items.map((item,idx)=>(
-                          <ProductItem key={idx}>
-                            <ProductImage src={item.image} alt={item.name}/>
-                            <ProductText>
-                              <p><b>{item.name}</b></p>
-                              <p>Qté: {item.quantity} | {item.price} DT</p>
-                            </ProductText>
+                  <tr key={order._id}>
+                    <TableCell data-label="Statut">
+                      <StatusBadge status={order.status}>{order.status}</StatusBadge>
+                    </TableCell>
+                    <TableCell data-label="Date">
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell data-label="Produits">
+                      <div style={{display:'flex', flexDirection:'column', gap:'5px', alignItems: 'flex-end'}}>
+                        {order.line_items.map((item, i) => (
+                          <ProductItem key={i}>
+                            <span style={{fontSize:'12px'}}>{item.quantity}x {item.name}</span>
                           </ProductItem>
                         ))}
-                      </ProductList>
-                      {order.status==="En attente" && (
-                        <CancelButton onClick={()=>handleCancelOrder(order._id)}>Annuler</CancelButton>
-                      )}
+                        {order.status === "En attente" && (
+                          <CancelButton onClick={()=>handleCancelOrder(order._id)}>Annuler</CancelButton>
+                        )}
+                      </div>
                     </TableCell>
-                  </TableRow>
+                  </tr>
                 ))}
               </tbody>
             </OrdersTable>
-          }
+          )}
         </Card>
-        <ToastContainer position="top-right" autoClose={3000}/>
+        <ToastContainer position="bottom-center"/>
       </Container>
     </>
   );
