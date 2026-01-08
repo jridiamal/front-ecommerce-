@@ -1,7 +1,7 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import { Order } from "@/models/Order";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "./auth/[...nextauth]"; 
+import { authOptions } from "./auth/[...nextauth]"; // vérifie ce chemin selon la structure
 
 export default async function handler(req, res) {
   await mongooseConnect();
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     try {
       const historique = await Order.find({
         email: userEmail,
-        status: { $in: ["Annulée", "Livrée", "Prête"] } // juste l’historique
+        status: { $in: ["Annulée", "Livrée", "Prête"] },
       }).sort({ createdAt: -1 });
 
       return res.status(200).json(historique);
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     try {
       await Order.updateMany(
         { email: userEmail, status: { $in: ["Annulée", "Livrée", "Prête"] } },
-        { $set: { status: "Supprimée" } } // ou remove totally si tu veux
+        { $set: { status: "Supprimée" } }
       );
 
       return res.status(200).json({ message: "Historique supprimé" });
