@@ -83,11 +83,11 @@ const DropdownMenu = styled.div`
 `;
 
 const OrdersTable = styled.table`
-  width: 1000%;
+  width: 100%;
   border-collapse: collapse;
   margin-top: 15px;
 
-  @media (max-width: 768px) {
+  @media (max-width: 800px) {
     display: block;
     thead { display: none; }
     tr {
