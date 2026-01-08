@@ -13,6 +13,7 @@ const Bg = styled.div`
   justify-content: center;
   padding: 40px 20px; 
   box-sizing: border-box;
+  margin-top: 40px;
 
   background: #7f7bd1;
   background: radial-gradient(circle, rgba(127, 123, 209, 1) 0%, rgba(245, 240, 240, 1) 100%);
