@@ -3,8 +3,6 @@ import Header from "@/components/Header";
 import Center from "@/components/Center";
 import Footer from "@/components/Footer";
 import styled from "styled-components";
-import { mongooseConnect } from "@/lib/mongoose";
-import { Product } from "@/models/Product";
 import { useState, useContext, useEffect, useRef } from "react";
 import { CartContext } from "@/components/CartContext";
 import { AnimationContext } from "@/components/AnimationContext";
@@ -13,7 +11,7 @@ import ProductBox from "@/components/ProductBox";
 
 const accent = "#5542F6";
 
-/* ================= STYLES ================= */
+/* ================= STYLES RESPONSIVES ================= */
 
 const Page = styled.div`
   background: #f9fafb;
@@ -22,152 +20,93 @@ const Page = styled.div`
 
 const Grid = styled.div`
   display: grid;
-  gap: 50px;
-  margin-top: 50px;
+  grid-template-columns: 1fr; /* 1 colonne sur mobile */
+  gap: 20px;
+  margin-top: 20px;
+  width: 100%;
+
   @media (min-width: 900px) {
-    grid-template-columns: 1.1fr 1fr;
+    grid-template-columns: 1.1fr 1fr; /* 2 colonnes sur PC */
+    gap: 50px;
+    margin-top: 50px;
   }
 `;
 
 const Box = styled(motion.div)`
   background: white;
   border-radius: 20px;
-  padding: 25px;
+  padding: 15px; /* Plus petit sur mobile */
   box-shadow: 0 12px 30px rgba(0,0,0,.08);
   position: relative;
+  width: 100%;
+  box-sizing: border-box;
+
+  @media (min-width: 768px) {
+    padding: 25px;
+  }
 `;
 
 const ImgWrapper = styled.div`
   overflow: hidden;
   border-radius: 18px;
+  display: flex;
+  justify-content: center;
 `;
 
 const MainImg = styled(motion.img)`
   width: 100%;
-  height: 420px;
+  max-height: 300px; /* Limité sur mobile */
   object-fit: contain;
+
+  @media (min-width: 768px) {
+    max-height: 420px;
+  }
 `;
 
 const Thumbs = styled.div`
   display: flex;
   gap: 10px;
   margin-top: 15px;
+  overflow-x: auto; /* Scroll horizontal si trop d'images sur mobile */
+  padding-bottom: 5px;
+  
   img {
-    width: 70px;
-    height: 70px;
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
     border-radius: 10px;
     cursor: pointer;
     border: 2px solid transparent;
     transition: border-color 0.2s;
-    &:hover {
-      border-color: ${accent};
-    }
+    &.active { border-color: ${accent}; }
   }
-`;
-
-const Desc = styled.p`
-  color: #555;
-  margin: 15px 0;
-`;
-
-const Qty = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin: 20px 0;
-`;
-
-const QtyBtn = styled.button`
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  border: 1px solid #ddd;
-  font-size: 20px;
-  background: white;
-  cursor: pointer;
 `;
 
 const AddBtn = styled(motion.button)`
   width: 100%;
-  padding: 12px;
+  padding: 16px; /* Plus grand pour le pouce sur mobile */
   border-radius: 16px;
   border: none;
   background: ${accent};
   color: white;
-  font-size: 1rem;
-  margin-top: 10px;
-`;
-
-const Ribbon = styled.div`
-  position: absolute;
-  top: 15px;
-  left: -40px;
-  background: red;
-  color: white;
-  padding: 6px 50px;
-  transform: rotate(-45deg);
-  font-size: .8rem;
-  z-index: 10;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 15px;
+  cursor: pointer;
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
 const ColorWrapper = styled.div`
   display: flex;
+  flex-wrap: wrap; /* Revient à la ligne si trop de couleurs */
   gap: 12px;
   margin: 15px 0;
 `;
 
-const ColorCircle = styled.button`
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 2px solid ${({ active }) => (active ? "#000" : "#eee")};
-  background-color: ${({ color }) => color};
-  cursor: pointer;
-  position: relative;
-
-  ${({ isOutOfStock }) => isOutOfStock && `
-    &::after {
-      content: "";
-      position: absolute;
-      top: 50%;
-      left: -20%;
-      width: 140%;
-      height: 2px;
-      background: red;
-      transform: rotate(-45deg);
-    }
-    opacity: .5;
-    cursor: not-allowed;
-  `}
-`;
-
-const Title = styled.h3`
-  font-size: 1.2rem;
-  font-weight: 600;
-`;
-
-const Price = styled.div`
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: blue;
-  span {
-    font-size: .8rem;
-    color: red;
-    margin-left: 5px;
-  }
-`;
-
-const RecoGrid = styled.div`
-  margin-top: 70px;
-  padding-bottom: 50px;
-`;
-
-const RecoCards = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill,minmax(220px,1fr));
-  gap: 25px;
-  margin-top: 25px;
-`;
+// ... (Gardez vos autres styles ColorCircle, Price, Title ici)
 
 /* ================= COMPONENT ================= */
 
@@ -176,54 +115,53 @@ export default function ProductPage({ product, recommended }) {
   const { triggerFlyAnimation } = useContext(AnimationContext);
   const imgRef = useRef(null);
 
-  const colorVariants = product?.properties?.colorVariants || [];
-  const hasColors = colorVariants.length > 0;
-
   const [selectedColor, setSelectedColor] = useState(null);
-  const [currentImage, setCurrentImage] = useState(product.images?.[0]);
+  const [currentImage, setCurrentImage] = useState(product?.images?.[0]);
   const [qty, setQty] = useState(1);
 
   useEffect(() => {
-    setSelectedColor(null);
-    setCurrentImage(product.images?.[0]);
-    setQty(1);
-  }, [product._id]);
+    setCurrentImage(product?.images?.[0]);
+  }, [product]);
 
+  const colorVariants = product?.properties?.colorVariants || [];
   const currentVariant = selectedColor 
     ? colorVariants.find(v => v.color === selectedColor) 
     : null;
 
-  // Global out of stock logic
-  const isRupture = product.stock === 0 || (selectedColor && currentVariant?.outOfStock);
-
-  // Selection logic: Can add if product has stock AND (no color selected or selected color is in stock)
-  const canAddToCart = product.stock > 0 && (!selectedColor || !currentVariant?.outOfStock);
+  const isRupture = product?.stock === 0 || (selectedColor && currentVariant?.outOfStock);
+  const canAddToCart = product?.stock > 0 && (!selectedColor || !currentVariant?.outOfStock);
 
   function handleAddToCart() {
     if (!canAddToCart) return;
 
-    if (imgRef.current) {
+    // Animation
+    if (imgRef.current && triggerFlyAnimation) {
       triggerFlyAnimation(imgRef.current, imgRef.current.getBoundingClientRect());
     }
 
-    // Loop to handle the quantity state
+    // Ajout au panier
     for (let i = 0; i < qty; i++) {
       addProduct({
         _id: product._id,
-        image: currentImage, // Uses whatever image is currently displayed
-        color: currentVariant?.color || null,
+        title: product.title,
+        price: product.price,
+        image: currentImage,
+        color: selectedColor,
         colorId: currentVariant?._id || null,
       });
     }
   }
+
+  if (!product) return null;
 
   return (
     <Page>
       <Header />
       <Center>
         <Grid>
-          <Box initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}>
-            {isRupture && <Ribbon>RUPTURE</Ribbon>}
+          {/* Section Image */}
+          <Box initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            {isRupture && <div style={{position:'absolute', top:'10px', right:'10px', background:'red', color:'white', padding:'5px 10px', borderRadius:'5px', zIndex:10}}>RUPTURE</div>}
             <ImgWrapper ref={imgRef}>
               <MainImg src={currentImage} />
             </ImgWrapper>
@@ -232,85 +170,81 @@ export default function ProductPage({ product, recommended }) {
                 <img 
                   key={i} 
                   src={img} 
-                  onClick={() => {
-                    setCurrentImage(img);
-                    // If user clicks a thumb that doesn't match selected color, deselect color
-                    if (currentVariant && currentVariant.imageUrl !== img) {
-                      setSelectedColor(null);
-                    }
-                  }} 
+                  className={currentImage === img ? 'active' : ''}
+                  onClick={() => setCurrentImage(img)} 
                 />
               ))}
             </Thumbs>
           </Box>
 
-          <Box initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}>
-            <Title>{product.title}</Title>
-            <Desc>{product.description}</Desc>
-            <Price>{product.price.toFixed(2)} DT <span>(HT)</span></Price>
+          {/* Section Infos */}
+          <Box initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            <h1 style={{fontSize:'1.5rem', margin:'0 0 10px 0'}}>{product.title}</h1>
+            <p style={{color:'#666', fontSize:'0.9rem', lineHeight:'1.5'}}>{product.description}</p>
+            
+            <div style={{fontSize:'1.4rem', fontWeight:'bold', color:accent, margin:'15px 0'}}>
+              {product.price.toFixed(2)} DT
+            </div>
 
-            {hasColors && (
-              <ColorWrapper>
-                {colorVariants.map((v, i) => (
-                  <ColorCircle
-                    key={i}
-                    color={v.color}
-                    active={selectedColor === v.color}
-                    isOutOfStock={v.outOfStock}
-                    onClick={() => {
-                      if (v.outOfStock) return;
-                      setSelectedColor(v.color);
-                      if (v.imageUrl) setCurrentImage(v.imageUrl);
-                    }}
-                  />
-                ))}
-              </ColorWrapper>
+            {colorVariants.length > 0 && (
+              <div>
+                <p style={{fontWeight:'600', marginBottom:'10px'}}>Couleurs disponibles :</p>
+                <ColorWrapper>
+                  {colorVariants.map((v, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        if (!v.outOfStock) {
+                          setSelectedColor(v.color);
+                          if (v.imageUrl) setCurrentImage(v.imageUrl);
+                        }
+                      }}
+                      style={{
+                        width:'30px', height:'30px', borderRadius:'50%', 
+                        background: v.color, border: selectedColor === v.color ? '3px solid black' : '1px solid #ddd',
+                        cursor: v.outOfStock ? 'not-allowed' : 'pointer',
+                        opacity: v.outOfStock ? 0.3 : 1
+                      }}
+                    />
+                  ))}
+                </ColorWrapper>
+              </div>
             )}
 
-            <Qty>
-              <QtyBtn onClick={() => setQty(q => Math.max(1, q - 1))}>-</QtyBtn>
-              <strong>{qty}</strong>
-              <QtyBtn onClick={() => setQty(q => q + 1)}>+</QtyBtn>
-            </Qty>
+            <div style={{display:'flex', alignItems:'center', gap:'20px', margin:'20px 0'}}>
+               <div style={{display:'flex', alignItems:'center', border:'1px solid #ddd', borderRadius:'10px'}}>
+                  <button style={{padding:'10px 15px', border:'none', background:'none'}} onClick={() => setQty(q => Math.max(1, q - 1))}>-</button>
+                  <span style={{padding:'0 10px', fontWeight:'bold'}}>{qty}</span>
+                  <button style={{padding:'10px 15px', border:'none', background:'none'}} onClick={() => setQty(q => q + 1)}>+</button>
+               </div>
+            </div>
 
             <AddBtn
               disabled={!canAddToCart}
-              style={{
-                opacity: canAddToCart ? 1 : .5,
-                cursor: canAddToCart ? "pointer" : "not-allowed",
-              }}
+              whileTap={canAddToCart ? { scale: 0.95 } : {}}
               onClick={handleAddToCart}
             >
-              {isRupture ? "Produit épuisé" : "Ajouter au panier"}
+              {isRupture ? "Épuisé" : "Ajouter au panier"}
             </AddBtn>
           </Box>
         </Grid>
 
-        <RecoGrid>
-          <h2 className="text-2xl font-bold">Produits recommandés</h2>
-          <RecoCards>
-            {recommended.map(p => (
+        {/* Recommandations */}
+        <div style={{marginTop:'50px', padding:'0 10px'}}>
+          <h2 style={{fontSize:'1.3rem', marginBottom:'20px'}}>Produits recommandés</h2>
+          <div style={{
+            display:'grid', 
+            gridTemplateColumns:'repeat(2, 1fr)', /* 2 colonnes sur mobile */
+            gap:'15px'
+          }}>
+            {/* Si vous avez un min-width sur PC, utilisez des media queries ici */}
+            {recommended?.map(p => (
               <ProductBox key={p._id} {...p} />
             ))}
-          </RecoCards>
-        </RecoGrid>
+          </div>
+        </div>
       </Center>
       <Footer />
     </Page>
   );
-}
-
-export async function getServerSideProps({ query }) {
-  await mongooseConnect();
-  const product = await Product.findById(query.id).lean();
-  const recommended = await Product.aggregate([
-    { $match: { _id: { $ne: product._id }, category: product.category } },
-    { $sample: { size: 6 } }
-  ]);
-  return {
-    props: {
-      product: JSON.parse(JSON.stringify(product)),
-      recommended: JSON.parse(JSON.stringify(recommended)),
-    },
-  };
 }
