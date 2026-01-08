@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import React, { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import { useSession, signIn, signOut } from "next-auth/react";
@@ -7,53 +7,37 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Link from "next/link";
 
-// ===== Styled Components Optimized for Full Width Mobile =====
-
+// ===== Styled Components =====
 const Container = styled.div`
   min-height: calc(100vh - 80px);
-  padding: 10px 5px; /* Minimal side padding for mobile */
+  padding: 10px 5px;
   margin-top: 80px;
   background-color: #f8fafc;
-
-  @media (min-width: 768px) {
-    padding: 30px;
-  }
+  @media (min-width: 768px) { padding: 30px; }
 `;
-
 const Card = styled.div`
   background: #fff;
   border-radius: 12px;
   padding: 15px;
-  width: 100%; /* Full width */
+  width: 100%;
   max-width: 1000px;
   margin: 0 auto 15px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
   box-sizing: border-box;
-
-  @media (min-width: 768px) {
-    padding: 25px;
-    margin-bottom: 25px;
-  }
+  @media (min-width: 768px) { padding: 25px; margin-bottom: 25px; }
 `;
-
 const ProfileSection = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   gap: 15px;
-
-  @media (min-width: 640px) {
-    flex-direction: row;
-    text-align: left;
-  }
+  @media (min-width: 640px) { flex-direction: row; text-align: left; }
 `;
-
 const AvatarWrapper = styled.div`
   position: relative;
   z-index: 20;
 `;
-
 const AvatarImage = styled.img`
   border-radius: 50%;
   width: 70px;
@@ -62,7 +46,6 @@ const AvatarImage = styled.img`
   border: ${props => (props.active ? "3px solid #2563eb" : "2px solid #e2e8f0")};
   cursor: pointer;
 `;
-
 const DropdownMenu = styled.div`
   position: absolute;
   top: 100%;
@@ -71,22 +54,16 @@ const DropdownMenu = styled.div`
   margin-top: 10px;
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
   min-width: 240px;
   padding: 15px;
   z-index: 100;
-
-  @media (min-width: 640px) {
-    left: 0;
-    transform: none;
-  }
+  @media (min-width: 640px) { left: 0; transform: none; }
 `;
-
 const OrdersTable = styled.table`
   width: 100%;
   border-collapse: collapse;
   margin-top: 15px;
-
   @media (max-width: 800px) {
     display: block;
     thead { display: none; }
@@ -99,7 +76,7 @@ const OrdersTable = styled.table`
     }
     td {
       display: flex;
-      flex-direction: column; /* Stack vertically for more room */
+      flex-direction: column;
       border: none;
       padding: 8px 0;
       font-size: 14px;
@@ -114,7 +91,6 @@ const OrdersTable = styled.table`
     }
   }
 `;
-
 const TableHeader = styled.th`
   text-align: left;
   padding: 12px;
@@ -122,113 +98,103 @@ const TableHeader = styled.th`
   color: #64748b;
   border-bottom: 2px solid #e2e8f0;
 `;
-
-const TableCell = styled.td`
-  padding: 12px;
-  border-bottom: 1px solid #f1f5f9;
-`;
-
+const TableCell = styled.td`padding: 12px; border-bottom: 1px solid #f1f5f9;`;
 const WishlistGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, 1fr); 
-  gap: 10px;
-  margin-top: 15px;
-
-  @media (min-width: 640px) {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 20px;
-  }
+  grid-template-columns: repeat(2,1fr);
+  gap:10px;
+  margin-top:15px;
+  @media (min-width:640px){grid-template-columns: repeat(auto-fill,minmax(180px,1fr));gap:20px;}
 `;
-
 const WishItem = styled.div`
   border: 1px solid #f1f5f9;
   padding: 10px;
   border-radius: 12px;
   text-align: center;
   background: #fff;
-  img { width: 100%; height: 120px; object-fit: contain; } /* Kept product image */
+  img { width: 100%; height: 120px; object-fit: contain; }
   p { font-size: 13px; margin: 8px 0 0; font-weight: 600; color: #334155; }
 `;
-
-const ProductList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-`;
-
-const ProductItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-`;
-
+const ProductList = styled.div`display:flex; flex-direction:column; gap:10px;`;
+const ProductItem = styled.div`display:flex; align-items:center; gap:12px;`;
 const ProductImage = styled.img`
-  width: 50px;
-  height: 50px;
-  border-radius: 8px;
-  object-fit: cover;
-  flex-shrink: 0; /* Prevents image from squishing */
+  width:50px; height:50px; border-radius:8px; object-fit:cover; flex-shrink:0;
 `;
-
-const ProductText = styled.div`
-  p { margin: 0; font-size: 13px; color: #374151; line-height: 1.2; }
-`;
-
+const ProductText = styled.div`p{margin:0; font-size:13px;color:#374151;line-height:1.2;}`;
 const StatusBadge = styled.span`
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 700;
-  display: inline-block;
-  background: ${props => props.status === "Prête" ? "#dcfce7" : "#f1f5f9"};
-  color: ${props => props.status === "Prête" ? "#166534" : "#475569"};
+  padding:4px 12px;
+  border-radius:20px;
+  font-size:12px;
+  font-weight:700;
+  display:inline-block;
+  background:${props => props.status === "Prête" ? "#dcfce7" : props.status === "Annulée" ? "#fee2e2" : "#f1f5f9"};
+  color:${props => props.status === "Prête" ? "#166534" : props.status === "Annulée" ? "#991b1b" : "#475569"};
 `;
-
 const CancelButton = styled.button`
-  padding: 8px 15px;
-  background: #fff1f2;
-  color: #be123c;
-  border: 1px solid #fecdd3;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 10px;
-  width: 100%; /* Full width on mobile for easy tapping */
-  @media (min-width: 768px) { width: auto; }
+  padding:8px 15px;
+  background:#fff1f2;
+  color:#be123c;
+  border:1px solid #fecdd3;
+  border-radius:8px;
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+  margin-top:10px;
+  width:100%;
+  @media(min-width:768px){width:auto;}
 `;
 
-
-export default function AccountPage() {
+export default function AccountPage(){
   const { data: session, status } = useSession();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [orders, setOrders] = useState([]);
+  const [historique, setHistorique] = useState([]);
   const [wishlist, setWishlist] = useState([]);
+  const [showHistorique, setShowHistorique] = useState(false);
 
-  useEffect(() => {
-    if(status === "authenticated") {
-      fetch('/api/orders').then(res => res.json()).then(data => Array.isArray(data) && setOrders(data));
-      fetch('/api/wishlist').then(res => res.json()).then(data => Array.isArray(data) && setWishlist(data));
+  // Fetch Orders & Wishlist & Historique
+  useEffect(()=>{
+    if(status==="authenticated"){
+      fetch("/api/orders").then(res=>res.json()).then(data=>{
+        if(Array.isArray(data)){
+          const active = data.filter(o=>o.status==="En attente");
+          const hist = data.filter(o=>["Annulée","Livrée","Prête"].includes(o.status));
+          setOrders(active);
+          setHistorique(hist);
+        }
+      });
+      fetch("/api/wishlist").then(res=>res.json()).then(data=>Array.isArray(data)&&setWishlist(data));
     }
-  }, [status]);
+  },[status]);
 
-  const handleCancelOrder = async (orderId) => {
+  const handleCancelOrder = async(orderId)=>{
     if(!window.confirm("Annuler cette commande ?")) return;
-    try {
-      const res = await fetch("/api/orders", {
+    try{
+      const res = await fetch("/api/orders",{
         method:"DELETE",
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({orderId})
       });
-      if(res.ok) {
+      if(res.ok){
         toast.success("Commande annulée");
-        setOrders(orders.map(o => o._id === orderId ? {...o, status:"Annulée"} : o));
+        setOrders(orders.map(o=>o._id===orderId?{...o,status:"Annulée"}:o));
+        setHistorique(prev=>[...prev, ...orders.filter(o=>o._id===orderId)]);
       }
-    } catch(err) { toast.error("Erreur"); }
+    }catch(err){toast.error("Erreur");}
   };
 
-  if(status === "loading") return <><Header/><Container>Chargement...</Container></>;
+  const handleDeleteHistorique = async()=>{
+    if(!window.confirm("Supprimer tout l’historique ?")) return;
+    try{
+      const res = await fetch("/api/orders/historique",{method:"DELETE"});
+      if(res.ok){
+        setHistorique([]);
+        toast.success("Historique supprimé");
+      } else toast.error("Erreur suppression");
+    }catch(err){toast.error("Erreur réseau");}
+  };
 
+  if(status==="loading") return <><Header/><Container>Chargement...</Container></>;
   if(!session) return (
     <><Header/><Container><Card style={{textAlign:'center'}}>
       <h2>Mon Compte</h2>
@@ -242,30 +208,47 @@ export default function AccountPage() {
     <>
       <Header/>
       <Container>
+        {/* Profile Card */}
         <Card>
           <ProfileSection>
             <AvatarWrapper onClick={()=>setIsDropdownOpen(!isDropdownOpen)}>
-              <AvatarImage src={session.user?.image || "/avatar.png"} active={isDropdownOpen}/>
+              <AvatarImage src={session.user?.image||"/avatar.png"} active={isDropdownOpen}/>
               {isDropdownOpen && (
                 <DropdownMenu>
-                  <p style={{margin:0, fontSize:'12px', color:'#64748b'}}>Connecté en tant que</p>
+                  <p style={{margin:0,fontSize:'12px',color:'#64748b'}}>Connecté en tant que</p>
                   <p style={{margin:'4px 0 12px 0', fontWeight:700}}>{session.user?.email}</p>
-                  <button onClick={()=>signOut()} style={{width:'100%', padding:'8px', background:'#ef4444', color:'white', border:'none', borderRadius:'6px', cursor:'pointer'}}>Se déconnecter</button>
+
+                  {/* Historique Button */}
+                  <button
+                    onClick={()=>setShowHistorique(!showHistorique)}
+                    style={{width:'100%',padding:'8px',marginBottom:'8px',background:'#f1f5f9',border:'1px solid #e2e8f0',borderRadius:'6px',cursor:'pointer',fontWeight:600}}
+                  >
+                    📜 Historique
+                  </button>
+
+                  <button
+                    onClick={()=>signOut()}
+                    style={{width:'100%', padding:'8px', background:'#ef4444', color:'white', border:'none', borderRadius:'6px', cursor:'pointer'}}
+                  >
+                    Se déconnecter
+                  </button>
                 </DropdownMenu>
               )}
             </AvatarWrapper>
+
             <div>
-              <h2 style={{margin:0, fontSize:'1.4rem'}}>Bonjour, {session.user?.name}</h2>
-              <p style={{margin:0, color:'#64748b', fontSize:'14px'}}>Gérez vos commandes et favoris</p>
+              <h2 style={{margin:0,fontSize:'1.4rem'}}>Bonjour, {session.user?.name}</h2>
+              <p style={{margin:0,color:'#64748b', fontSize:'14px'}}>Gérez vos commandes et favoris</p>
             </div>
           </ProfileSection>
         </Card>
 
+        {/* Wishlist */}
         <Card>
           <h3 style={{fontSize:'18px', marginBottom:'15px'}}>❤️ Mes Favoris</h3>
           {!wishlist.length ? <p>Aucun favori.</p> : (
             <WishlistGrid>
-              {wishlist.map(w => w.product && (
+              {wishlist.map(w=>w.product&&(
                 <Link href={`/product/${w.product._id}`} key={w._id} style={{textDecoration:'none'}}>
                   <WishItem>
                     <img src={w.product.images?.[0]} alt=""/>
@@ -277,6 +260,7 @@ export default function AccountPage() {
           )}
         </Card>
 
+        {/* Orders */}
         <Card>
           <h3 style={{fontSize:'18px', marginBottom:'15px'}}>📦 Mes Commandes</h3>
           {!orders.length ? <p>Aucune commande.</p> : (
@@ -289,17 +273,13 @@ export default function AccountPage() {
                 </tr>
               </thead>
               <tbody>
-                {orders.map(order => (
+                {orders.map(order=>(
                   <tr key={order._id}>
-                    <TableCell data-label="Statut">
-                      <StatusBadge status={order.status}>{order.status}</StatusBadge>
-                    </TableCell>
-                    <TableCell data-label="Date">
-                      {new Date(order.createdAt).toLocaleDateString()}
-                    </TableCell>
+                    <TableCell data-label="Statut"><StatusBadge status={order.status}>{order.status}</StatusBadge></TableCell>
+                    <TableCell data-label="Date">{new Date(order.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell data-label="Produits">
                       <ProductList>
-                        {order.line_items.map((item, i) => (
+                        {order.line_items.map((item,i)=>(
                           <ProductItem key={i}>
                             <ProductImage src={item.image} alt=""/>
                             <ProductText>
@@ -309,9 +289,7 @@ export default function AccountPage() {
                           </ProductItem>
                         ))}
                       </ProductList>
-                      {order.status === "En attente" && (
-                        <CancelButton onClick={()=>handleCancelOrder(order._id)}>Annuler la commande</CancelButton>
-                      )}
+                      {order.status==="En attente" && <CancelButton onClick={()=>handleCancelOrder(order._id)}>Annuler la commande</CancelButton>}
                     </TableCell>
                   </tr>
                 ))}
@@ -319,6 +297,46 @@ export default function AccountPage() {
             </OrdersTable>
           )}
         </Card>
+
+        {/* Historique */}
+        {showHistorique && (
+          <Card>
+            <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+              <h3 style={{fontSize:"18px"}}>📜 Historique des commandes</h3>
+              <button onClick={handleDeleteHistorique}
+                style={{background:"#fee2e2",color:"#991b1b",border:"1px solid #fecaca",borderRadius:"8px",padding:"6px 10px",cursor:"pointer",fontSize:"12px"}}
+              >
+                🗑️ Tout supprimer
+              </button>
+            </div>
+            {!historique.length ? <p style={{marginTop:"10px"}}>Aucun historique.</p> : (
+              <OrdersTable>
+                <tbody>
+                  {historique.map(order=>(
+                    <tr key={order._id}>
+                      <TableCell data-label="Statut"><StatusBadge status={order.status}>{order.status}</StatusBadge></TableCell>
+                      <TableCell data-label="Date">{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell data-label="Produits">
+                        <ProductList>
+                          {order.line_items.map((item,i)=>(
+                            <ProductItem key={i}>
+                              <ProductImage src={item.image} alt=""/>
+                              <ProductText>
+                                <p><b>{item.name}</b></p>
+                                <p>Qté: {item.quantity} | {item.price} DT</p>
+                              </ProductText>
+                            </ProductItem>
+                          ))}
+                        </ProductList>
+                      </TableCell>
+                    </tr>
+                  ))}
+                </tbody>
+              </OrdersTable>
+            )}
+          </Card>
+        )}
+
         <ToastContainer position="bottom-center" />
       </Container>
     </>
