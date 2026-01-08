@@ -213,7 +213,6 @@ const [selectedColor, setSelectedColor] = useState(null);
   const currentVariant = colorVariants.find(v => v.color === selectedColor);
 const hasColors = colorVariants.length > 0;
 
-const outOfStock = product.outOfStock === true;
 
 const isRupture =
   outOfStock ||
