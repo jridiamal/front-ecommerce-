@@ -1,7 +1,7 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import { Order } from "@/models/Order";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "./auth/[...nextauth]"; // vérifie ce chemin selon la structure
+import { authOptions } from "./auth/[...nextauth]"; 
 
 export default async function handler(req, res) {
   await mongooseConnect();
@@ -12,7 +12,6 @@ export default async function handler(req, res) {
   }
   const userEmail = session.user.email;
 
-  // ---------------- GET -----------------
   if (req.method === "GET") {
     try {
       const historique = await Order.find({
