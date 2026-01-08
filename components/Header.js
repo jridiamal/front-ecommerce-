@@ -48,7 +48,7 @@ const LogoText = styled.div`
   font-family: 'Inter', sans-serif;
   font-size: 1.1rem;
   span {
-    font-size: 0.75rem;
+    font-size: 0.80rem;
     color: ${PrimaryColor};
     text-transform: uppercase;
     letter-spacing: 1.2px;
