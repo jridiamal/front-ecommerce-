@@ -54,16 +54,17 @@ const FilterChip = styled.button`
 
 const FilterWrapper = styled.div`
   display: flex;
-  gap: 10px;
+  gap: 9px;
   overflow-x: auto;
-  width: calc(100% + 40px); /* Sort des marges du parent pour un scroll plein écran */
+  width: calc(100% + 40px); 
+  
   margin: 0 -20px; 
   padding: 5px 20px 15px 20px;
-  scroll-snap-type: x mandatory; /* Aligne proprement les puces lors du scroll */
+  scroll-snap-type: x mandatory; 
   
   & > button {
     scroll-snap-align: start;
-    flex-shrink: 0; /* Empêche les boutons de s'écraser */
+    flex-shrink: 0; 
   }
 
   &::-webkit-scrollbar { display: none; }
