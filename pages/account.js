@@ -7,8 +7,6 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Link from "next/link";
 
-/* ================= STYLES ================= */
-
 const Container = styled.div`
   min-height: calc(100vh - 80px);
   padding: 10px 5px;
@@ -16,7 +14,6 @@ const Container = styled.div`
   background-color: #f8fafc;
   @media (min-width: 768px) { padding: 30px; }
 `;
-
 const Card = styled.div`
   background: #fff;
   border-radius: 12px;
@@ -28,7 +25,6 @@ const Card = styled.div`
   box-sizing: border-box;
   @media (min-width: 768px) { padding: 25px; margin-bottom: 25px; }
 `;
-
 const ProfileSection = styled.div`
   display: flex;
   flex-direction: column;
@@ -37,12 +33,10 @@ const ProfileSection = styled.div`
   gap: 15px;
   @media (min-width: 640px) { flex-direction: row; text-align: left; }
 `;
-
 const AvatarWrapper = styled.div`
   position: relative;
   z-index: 20;
 `;
-
 const AvatarImage = styled.img`
   border-radius: 50%;
   width: 70px;
@@ -51,7 +45,6 @@ const AvatarImage = styled.img`
   border: ${props => (props.active ? "3px solid #2563eb" : "2px solid #e2e8f0")};
   cursor: pointer;
 `;
-
 const DropdownMenu = styled.div`
   position: absolute;
   top: 100%;
@@ -66,7 +59,6 @@ const DropdownMenu = styled.div`
   z-index: 100;
   @media (min-width: 640px) { left: 0; transform: none; }
 `;
-
 const OrdersTable = styled.table`
   width: 100%;
   border-collapse: collapse;
@@ -98,7 +90,6 @@ const OrdersTable = styled.table`
     }
   }
 `;
-
 const TableHeader = styled.th`
   text-align: left;
   padding: 12px;
@@ -106,23 +97,14 @@ const TableHeader = styled.th`
   color: #64748b;
   border-bottom: 2px solid #e2e8f0;
 `;
-
-const TableCell = styled.td`
-  padding: 12px;
-  border-bottom: 1px solid #f1f5f9;
-`;
-
+const TableCell = styled.td`padding: 12px; border-bottom: 1px solid #f1f5f9;`;
 const WishlistGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2,1fr);
   gap:10px;
   margin-top:15px;
-  @media (min-width:640px){
-    grid-template-columns: repeat(auto-fill,minmax(150px,1fr));
-    gap:20px;
-  }
+  @media (min-width:640px){grid-template-columns: repeat(auto-fill,minmax(150px,1fr));gap:20px;}
 `;
-
 const WishItem = styled.div`
   border: 1px solid #f1f5f9;
   padding: 10px;
@@ -136,66 +118,23 @@ const WishItem = styled.div`
     box-shadow: 0 5px 15px rgba(0,0,0,0.1);
   }
   img { width: 100%; height: 120px; object-fit: contain; margin-bottom: 8px; }
-  p {
-    font-size: 13px;
-    margin: 0;
-    font-weight: 600;
-    color: #334155;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
+  p { font-size: 13px; margin: 0; font-weight: 600; color: #334155; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 `;
-
-const ProductList = styled.div`
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-`;
-
-const ProductItem = styled.div`
-  display:flex;
-  align-items:center;
-  gap:12px;
-`;
-
+const ProductList = styled.div`display:flex; flex-direction:column; gap:10px;`;
+const ProductItem = styled.div`display:flex; align-items:center; gap:12px;`;
 const ProductImage = styled.img`
-  width:50px;
-  height:50px;
-  border-radius:8px;
-  object-fit:cover;
-  flex-shrink:0;
+  width:50px; height:50px; border-radius:8px; object-fit:cover; flex-shrink:0;
 `;
-
-const ProductText = styled.div`
-  p{
-    margin:0;
-    font-size:13px;
-    color:#374151;
-    line-height:1.2;
-  }
-`;
-
+const ProductText = styled.div`p{margin:0; font-size:13px;color:#374151;line-height:1.2;}`;
 const StatusBadge = styled.span`
   padding:4px 12px;
   border-radius:20px;
   font-size:12px;
   font-weight:700;
   display:inline-block;
-  background:${props =>
-    props.status === "Prête"
-      ? "#dcfce7"
-      : props.status === "Annulée"
-      ? "#fee2e2"
-      : "#f1f5f9"};
-  color:${props =>
-    props.status === "Prête"
-      ? "#166534"
-      : props.status === "Annulée"
-      ? "#991b1b"
-      : "#475569"};
+  background:${props => props.status === "Prête" ? "#dcfce7" : props.status === "Annulée" ? "#fee2e2" : "#f1f5f9"};
+  color:${props => props.status === "Prête" ? "#166534" : props.status === "Annulée" ? "#991b1b" : "#475569"};
 `;
-
 const CancelButton = styled.button`
   padding:8px 15px;
   background:#fff1f2;
@@ -209,7 +148,6 @@ const CancelButton = styled.button`
   width:100%;
   @media(min-width:768px){width:auto;}
 `;
-
 const BackButton = styled.button`
   background: transparent;
   border: 1px solid #cbd5e1;
@@ -224,134 +162,221 @@ const BackButton = styled.button`
   &:hover { background: #f1f5f9; }
 `;
 
-/* ================= PAGE ================= */
-
-export default function AccountPage() {
+export default function AccountPage(){
   const { data: session, status } = useSession();
-
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [orders, setOrders] = useState([]);
   const [historique, setHistorique] = useState([]);
   const [wishlist, setWishlist] = useState([]);
-  const [activeView, setActiveView] = useState("dashboard");
+  const [activeView, setActiveView] = useState('dashboard');
 
-  useEffect(() => {
-    if (status === "authenticated") {
-      fetch("/api/orders")
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data)) {
-            setOrders(data.filter(o => o.status === "En attente"));
-            setHistorique(data.filter(o =>
-              ["Annulée", "Livrée", "Prête"].includes(o.status)
-            ));
-          }
-        });
-
-      fetch("/api/wishlist")
-        .then(res => res.json())
-        .then(data => Array.isArray(data) && setWishlist(data));
-    }
-  }, [status]);
-
-  const handleCancelOrder = async (orderId) => {
-    if (!window.confirm("Annuler cette commande ?")) return;
-    try {
-      const res = await fetch("/api/orders", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId }),
+  useEffect(()=>{
+    if(status==="authenticated"){
+      fetch("/api/orders").then(res=>res.json()).then(data=>{
+        if(Array.isArray(data)){
+          const active = data.filter(o=>o.status==="En attente");
+          const hist = data.filter(o=>["Annulée","Livrée","Prête"].includes(o.status));
+          setOrders(active);
+          setHistorique(hist);
+        }
       });
+      fetch("/api/wishlist").then(res=>res.json()).then(data=>Array.isArray(data)&&setWishlist(data));
+    }
+  },[status]);
 
-      if (res.ok) {
+  const handleCancelOrder = async(orderId)=>{
+    if(!window.confirm("Annuler cette commande ?")) return;
+    try{
+      const res = await fetch("/api/orders",{
+        method:"DELETE",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({orderId})
+      });
+      if(res.ok){
         toast.success("Commande annulée");
         const cancelled = orders.find(o => o._id === orderId);
-        setOrders(orders.filter(o => o._id !== orderId));
-        if (cancelled) {
-          setHistorique(prev => [...prev, { ...cancelled, status: "Annulée" }]);
+        setOrders(orders.filter(o=>o._id!==orderId));
+        if(cancelled) {
+            setHistorique(prev=>[...prev, {...cancelled, status:"Annulée"}]);
         }
       }
-    } catch {
-      toast.error("Erreur");
-    }
+    }catch(err){toast.error("Erreur");}
   };
 
-  if (status === "loading") {
-    return <><Header /><Container>Chargement...</Container></>;
-  }
+  const handleDeleteHistorique = async()=>{
+    if(!window.confirm("Supprimer tout l’historique ?")) return;
+    try{
+      const res = await fetch("/api/historique",{method:"DELETE"});
+      if(res.ok){
+        setHistorique([]);
+        toast.success("Historique supprimé");
+      } else toast.error("Erreur suppression");
+    }catch(err){toast.error("Erreur réseau");}
+  };
 
-  if (!session) {
-    return (
-      <>
-        <Header />
-        <Container>
-          <Card style={{ textAlign: "center" }}>
-            <h2>Mon Compte</h2>
-            <button onClick={() => signIn("google")}>
-              Se connecter avec Google
-            </button>
-          </Card>
-        </Container>
-      </>
-    );
-  }
+  if(status==="loading") return <><Header/><Container>Chargement...</Container></>;
+  if(!session) return (
+    <><Header/><Container><Card style={{textAlign:'center'}}>
+      <h2>Mon Compte</h2>
+      <button onClick={()=>signIn("google")} style={{padding:'12px', width:'100%', maxWidth:'300px', cursor:'pointer'}}>
+        Se connecter avec Google
+      </button>
+    </Card></Container></>
+  );
 
   return (
     <>
-      <Header />
+      <Header/>
       <Container>
+        {activeView === 'history' ? (
+             <Card>
+               <BackButton onClick={() => setActiveView('dashboard')}>
+                  ← Retour au tableau de bord
+               </BackButton>
+               
+               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: '20px' }}>
+                 <h3 style={{ fontSize: "18px", margin: 0 }}>📜 Historique des commandes</h3>
+                 {historique.length > 0 && (
+                   <button onClick={handleDeleteHistorique} style={{ background: "#fee2e2", color: "#991b1b", border: "1px solid #fecaca", borderRadius: "8px", padding: "6px 10px", cursor: "pointer", fontSize: "12px" }}>
+                     🗑️ Tout supprimer
+                   </button>
+                 )}
+               </div>
+  
+               {!historique.length ? <p>Aucun historique.</p> : (
+                 <OrdersTable>
+                   <thead>
+                      <tr>
+                          <TableHeader>Statut</TableHeader>
+                          <TableHeader>Date</TableHeader>
+                          <TableHeader>Produits</TableHeader>
+                      </tr>
+                   </thead>
+                   <tbody>
+                     {historique.map(order => (
+                       <tr key={order._id}>
+                         <TableCell data-label="Statut"><StatusBadge status={order.status}>{order.status}</StatusBadge></TableCell>
+                         <TableCell data-label="Date">{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                         <TableCell data-label="Produits">
+                           <ProductList>
+                             {order.line_items.map((item, i) => (
+                               <ProductItem key={i}>
+                                 <ProductImage src={item.image} alt="" />
+                                 <ProductText>
+                                   <p><b>{item.name}</b></p>
+                                   <p>Qté: {item.quantity} | {item.price} DT</p>
+                                 </ProductText>
+                               </ProductItem>
+                             ))}
+                           </ProductList>
+                         </TableCell>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </OrdersTable>
+               )}
+             </Card>
+        ) : (
+          <>
+            <Card>
+              <ProfileSection>
+                <AvatarWrapper onClick={()=>setIsDropdownOpen(!isDropdownOpen)}>
+                  <AvatarImage src={session.user?.image||"/avatar.png"} active={isDropdownOpen}/>
+                  {isDropdownOpen && (
+                    <DropdownMenu>
+                      <p style={{margin:0,fontSize:'12px',color:'#64748b'}}>Connecté en tant que</p>
+                      <p style={{margin:'4px 0 12px 0', fontWeight:700}}>{session.user?.email}</p>
 
-        {activeView === "favorites" && (
-          <Card>
-            <BackButton onClick={() => setActiveView("dashboard")}>
-              ← Retour
-            </BackButton>
+                      <button
+                        onClick={()=>{
+                            setActiveView('history');
+                            setIsDropdownOpen(false);
+                        }}
+                        style={{width:'100%',padding:'8px',marginBottom:'8px',background:'#f1f5f9',border:'1px solid #e2e8f0',borderRadius:'6px',cursor:'pointer',fontWeight:600, display:'flex', alignItems:'center', justifyContent:'space-between'}}
+                      >
+                        📜 Historique
+                        {historique.length > 0 && (
+                          <span style={{
+                            display:"inline-block",
+                            width:"10px",
+                            height:"10px",
+                            borderRadius:"50%",
+                            background:"#ef4444"
+                          }}></span>
+                        )}
+                      </button>
 
-            <h3>❤️ Mes Favoris</h3>
-            {!wishlist.length ? <p>Aucun favori.</p> : (
-              <WishlistGrid>
-                {wishlist.map(w => w.product && (
-                  <Link key={w._id} href={`/product/${w.product._id}`}>
-                    <WishItem>
-                      <img src={w.product.images?.[0]} />
-                      <p>{w.product.title}</p>
-                    </WishItem>
-                  </Link>
-                ))}
-              </WishlistGrid>
-            )}
-          </Card>
+                      <button
+                        onClick={()=>signOut()}
+                        style={{width:'100%', padding:'8px', background:'#ef4444', color:'white', border:'none', borderRadius:'6px', cursor:'pointer'}}
+                      >
+                        Se déconnecter
+                      </button>
+                    </DropdownMenu>
+                  )}
+                </AvatarWrapper>
+
+                <div>
+                  <h2 style={{margin:0,fontSize:'1.4rem'}}>Bonjour, {session.user?.name}</h2>
+                  <p style={{margin:0,color:'#64748b', fontSize:'14px'}}>Gérez vos commandes et favoris</p>
+                </div>
+              </ProfileSection>
+            </Card>
+
+            <Card>
+              <h3 style={{fontSize:'18px', marginBottom:'15px'}}>❤️ Mes Favoris</h3>
+              {!wishlist.length ? <p>Aucun favori.</p> : (
+                <WishlistGrid>
+                  {wishlist.map(w=>w.product&&(
+                    <Link href={`/product/${w.product._id}`} key={w._id} style={{textDecoration:'none'}}>
+                      <WishItem>
+                        <img src={w.product.images?.[0]} alt=""/>
+                        <p>{w.product.title}</p>
+                      </WishItem>
+                    </Link>
+                  ))}
+                </WishlistGrid>
+              )}
+            </Card>
+
+            <Card>
+              <h3 style={{fontSize:'18px', marginBottom:'15px'}}>📦 Mes Commandes</h3>
+              {!orders.length ? <p>Aucune commande.</p> : (
+                <OrdersTable>
+                  <thead>
+                    <tr>
+                      <TableHeader>Statut</TableHeader>
+                      <TableHeader>Date</TableHeader>
+                      <TableHeader>Produits</TableHeader>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.map(order=>(
+                      <tr key={order._id}>
+                        <TableCell data-label="Statut"><StatusBadge status={order.status}>{order.status}</StatusBadge></TableCell>
+                        <TableCell data-label="Date">{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                        <TableCell data-label="Produits">
+                          <ProductList>
+                            {order.line_items.map((item,i)=>(
+                              <ProductItem key={i}>
+                                <ProductImage src={item.image} alt=""/>
+                                <ProductText>
+                                  <p><b>{item.name}</b></p>
+                                  <p>Qté: {item.quantity} | {item.price} DT</p>
+                                </ProductText>
+                              </ProductItem>
+                            ))}
+                          </ProductList>
+                          {order.status==="En attente" && <CancelButton onClick={()=>handleCancelOrder(order._id)}>Annuler la commande</CancelButton>}
+                        </TableCell>
+                      </tr>
+                    ))}
+                  </tbody>
+                </OrdersTable>
+              )}
+            </Card>
+          </>
         )}
-
-        {activeView === "dashboard" && (
-          <Card>
-            <ProfileSection>
-              <AvatarWrapper onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
-                <AvatarImage
-                  src={session.user?.image || "/avatar.png"}
-                  active={isDropdownOpen}
-                />
-
-                {isDropdownOpen && (
-                  <DropdownMenu>
-                    <button onClick={() => setActiveView("favorites")}>
-                      ❤️ Favoris
-                    </button>
-                    <button onClick={() => signOut()}>
-                      Se déconnecter
-                    </button>
-                  </DropdownMenu>
-                )}
-              </AvatarWrapper>
-
-              <div>
-                <h2>Bonjour, {session.user?.name}</h2>
-                <p>Gérez vos commandes et favoris</p>
-              </div>
-            </ProfileSection>
-          </Card>
-        )}
-
         <ToastContainer position="bottom-center" />
       </Container>
     </>
