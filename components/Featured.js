@@ -4,15 +4,14 @@ import ButtonLink from "@/components/ButtonLink";
 import { useContext } from "react";
 import { CartContext } from "@/components/CartContext";
 
-/* ================== STYLES RESPONSIVE ================== */
 
 const Bg = styled.div`
   width: 100%;
-  min-height: 50vh; 
+  min-height: 40vh; 
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px; /* Espace équilibré pour mobile */
+  padding: 40px 20px; 
   box-sizing: border-box;
 
   background: #7f7bd1;
@@ -29,7 +28,6 @@ const ColumnsWrapper = styled.div`
   grid-template-columns: 1fr;
   gap: 30px;
 
-  /* Inverser l'ordre sur mobile pour mettre l'image en haut si désiré */
   & div:nth-child(2) {
     grid-row: 1; /* L'image monte en premier */
   }
