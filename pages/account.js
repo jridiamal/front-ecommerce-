@@ -7,7 +7,6 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Link from "next/link";
 
-// ===== Styled Components =====
 const Container = styled.div`
   min-height: calc(100vh - 80px);
   padding: 10px 5px;
@@ -208,6 +207,7 @@ export default function AccountPage(){
     <>
       <Header/>
       <Container>
+        {/* PROFILE */}
         <Card>
           <ProfileSection>
             <AvatarWrapper onClick={()=>setIsDropdownOpen(!isDropdownOpen)}>
@@ -217,12 +217,20 @@ export default function AccountPage(){
                   <p style={{margin:0,fontSize:'12px',color:'#64748b'}}>Connecté en tant que</p>
                   <p style={{margin:'4px 0 12px 0', fontWeight:700}}>{session.user?.email}</p>
 
-                  {/* Historique Button */}
                   <button
                     onClick={()=>setShowHistorique(!showHistorique)}
-                    style={{width:'100%',padding:'8px',marginBottom:'8px',background:'#f1f5f9',border:'1px solid #e2e8f0',borderRadius:'6px',cursor:'pointer',fontWeight:600}}
+                    style={{width:'100%',padding:'8px',marginBottom:'8px',background:'#f1f5f9',border:'1px solid #e2e8f0',borderRadius:'6px',cursor:'pointer',fontWeight:600, display:'flex', alignItems:'center', justifyContent:'space-between'}}
                   >
                     📜 Historique
+                    {historique.length > 0 && !showHistorique && (
+                      <span style={{
+                        display:"inline-block",
+                        width:"10px",
+                        height:"10px",
+                        borderRadius:"50%",
+                        background:"#ef4444"
+                      }}></span>
+                    )}
                   </button>
 
                   <button
@@ -242,7 +250,6 @@ export default function AccountPage(){
           </ProfileSection>
         </Card>
 
-        {/* Wishlist */}
         <Card>
           <h3 style={{fontSize:'18px', marginBottom:'15px'}}>❤️ Mes Favoris</h3>
           {!wishlist.length ? <p>Aucun favori.</p> : (
@@ -259,7 +266,6 @@ export default function AccountPage(){
           )}
         </Card>
 
-        {/* Orders */}
         <Card>
           <h3 style={{fontSize:'18px', marginBottom:'15px'}}>📦 Mes Commandes</h3>
           {!orders.length ? <p>Aucune commande.</p> : (
@@ -297,7 +303,7 @@ export default function AccountPage(){
           )}
         </Card>
 
-        {/* Historique */}
+        {/* HISTORIQUE */}
         {showHistorique && (
           <Card>
             <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
