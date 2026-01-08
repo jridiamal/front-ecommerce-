@@ -2,10 +2,9 @@ import Header from "@/components/Header";
 import Center from "@/components/Center";
 import Footer from "@/components/Footer";
 import styled from "styled-components";
-import Link from "next/link";
 import { mongooseConnect } from "@/lib/mongoose";
 import { Product } from "@/models/Product";
-import { useState, useContext, useRef, useEffect } from "react";
+import { useState, useContext, useEffect, useRef } from "react";
 import { CartContext } from "@/components/CartContext";
 import { AnimationContext } from "@/components/AnimationContext";
 import { motion } from "framer-motion";
@@ -24,7 +23,6 @@ const Grid = styled.div`
   display: grid;
   gap: 50px;
   margin-top: 50px;
-
   @media (min-width: 900px) {
     grid-template-columns: 1.1fr 1fr;
   }
@@ -53,14 +51,13 @@ const Thumbs = styled.div`
   display: flex;
   gap: 10px;
   margin-top: 15px;
-
   img {
     width: 70px;
     height: 70px;
     border-radius: 10px;
     cursor: pointer;
     border: 2px solid transparent;
-
+    transition: border-color 0.2s;
     &:hover {
       border-color: ${accent};
     }
@@ -109,6 +106,7 @@ const Ribbon = styled.div`
   padding: 6px 50px;
   transform: rotate(-45deg);
   font-size: .8rem;
+  z-index: 10;
 `;
 
 const ColorWrapper = styled.div`
@@ -151,7 +149,6 @@ const Price = styled.div`
   font-size: 1.1rem;
   font-weight: 700;
   color: blue;
-
   span {
     font-size: .8rem;
     color: red;
@@ -161,6 +158,7 @@ const Price = styled.div`
 
 const RecoGrid = styled.div`
   margin-top: 70px;
+  padding-bottom: 50px;
 `;
 
 const RecoCards = styled.div`
@@ -190,60 +188,57 @@ export default function ProductPage({ product, recommended }) {
     setQty(1);
   }, [product._id]);
 
-  const currentVariant = hasColors
-    ? colorVariants.find(v => v.color === selectedColor)
+  const currentVariant = selectedColor 
+    ? colorVariants.find(v => v.color === selectedColor) 
     : null;
 
-  const isRupture =
-    product.stock === 0 ||
-    (hasColors && selectedColor && currentVariant?.outOfStock);
+  // Global out of stock logic
+  const isRupture = product.stock === 0 || (selectedColor && currentVariant?.outOfStock);
 
-  const canAddToCart =
-    product.stock > 0 &&
-    (!hasColors || (selectedColor && !currentVariant?.outOfStock));
+  // Selection logic: Can add if product has stock AND (no color selected or selected color is in stock)
+  const canAddToCart = product.stock > 0 && (!selectedColor || !currentVariant?.outOfStock);
 
   function handleAddToCart() {
     if (!canAddToCart) return;
-
-    let imageToAdd = product.images[0];
-    let colorToAdd = null;
-    let colorIdToAdd = null;
-
-    if (hasColors && selectedColor) {
-      imageToAdd = currentVariant?.imageUrl || product.images[0];
-      colorToAdd = currentVariant?.color;
-      colorIdToAdd = currentVariant?._id;
-    }
 
     if (imgRef.current) {
       triggerFlyAnimation(imgRef.current, imgRef.current.getBoundingClientRect());
     }
 
-    addProduct({
-      _id: product._id,
-      image: imageToAdd,
-      color: colorToAdd,
-      colorId: colorIdToAdd,
-      quantity: qty,
-    });
+    // Loop to handle the quantity state
+    for (let i = 0; i < qty; i++) {
+      addProduct({
+        _id: product._id,
+        image: currentImage, // Uses whatever image is currently displayed
+        color: currentVariant?.color || null,
+        colorId: currentVariant?._id || null,
+      });
+    }
   }
 
   return (
     <Page>
       <Header />
-
       <Center>
         <Grid>
           <Box initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}>
             {isRupture && <Ribbon>RUPTURE</Ribbon>}
-
             <ImgWrapper ref={imgRef}>
               <MainImg src={currentImage} />
             </ImgWrapper>
-
             <Thumbs>
               {product.images.map((img, i) => (
-                <img key={i} src={img} onClick={() => setCurrentImage(img)} />
+                <img 
+                  key={i} 
+                  src={img} 
+                  onClick={() => {
+                    setCurrentImage(img);
+                    // If user clicks a thumb that doesn't match selected color, deselect color
+                    if (currentVariant && currentVariant.imageUrl !== img) {
+                      setSelectedColor(null);
+                    }
+                  }} 
+                />
               ))}
             </Thumbs>
           </Box>
@@ -290,9 +285,8 @@ export default function ProductPage({ product, recommended }) {
           </Box>
         </Grid>
 
-        {/* RECOMMENDED */}
         <RecoGrid>
-          <h2>Produits recommandés</h2>
+          <h2 className="text-2xl font-bold">Produits recommandés</h2>
           <RecoCards>
             {recommended.map(p => (
               <ProductBox key={p._id} {...p} />
@@ -300,24 +294,18 @@ export default function ProductPage({ product, recommended }) {
           </RecoCards>
         </RecoGrid>
       </Center>
-
       <Footer />
     </Page>
   );
 }
 
-/* ================= SERVER ================= */
-
 export async function getServerSideProps({ query }) {
   await mongooseConnect();
-
   const product = await Product.findById(query.id).lean();
-
   const recommended = await Product.aggregate([
     { $match: { _id: { $ne: product._id }, category: product.category } },
     { $sample: { size: 6 } }
   ]);
-
   return {
     props: {
       product: JSON.parse(JSON.stringify(product)),
