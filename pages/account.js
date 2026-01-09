@@ -286,6 +286,7 @@ export default function AccountPage() {
                     <DropdownMenu>
                       <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Connecté en tant que</p>
                       <p style={{ margin: '4px 0 12px 0', fontWeight: 700 }}>{session.user?.email}</p>
+                      
                       <button
                         onClick={() => {
                           setActiveView('history');
@@ -298,6 +299,7 @@ export default function AccountPage() {
                           <span style={{ display: "inline-block", width: "10px", height: "10px", borderRadius: "50%", background: "#ef4444" }}></span>
                         )}
                       </button>
+
                       <button
                         onClick={() => {
                           setActiveView('dashboard');
@@ -307,6 +309,7 @@ export default function AccountPage() {
                       >
                         ❤️ Favoris
                       </button>
+
                       <button
                         onClick={() => signOut()}
                         style={{ width: '100%', padding: '8px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
@@ -322,7 +325,8 @@ export default function AccountPage() {
                 </div>
               </ProfileSection>
             </Card>
-            <Card>
+
+            <Card id="favoris-section">
               <h3 style={{ fontSize: '18px', marginBottom: '15px' }}>❤️ Mes Favoris</h3>
               {!wishlist.length ? <p>Aucun favori.</p> : (
                 <WishlistGrid>
@@ -337,6 +341,7 @@ export default function AccountPage() {
                 </WishlistGrid>
               )}
             </Card>
+
             <Card>
               <h3 style={{ fontSize: '18px', marginBottom: '15px' }}>📦 Mes Commandes</h3>
               {!orders.length ? <p>Aucune commande.</p> : (

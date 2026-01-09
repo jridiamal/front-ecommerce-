@@ -1,32 +1,48 @@
-import { getSession } from "next-auth/react";
-import { connectToDB } from "@/lib/mongodb";
-import Wishlist from "@/models/WishedProduct";
+import { mongooseConnect } from "@/lib/mongoose";
+import { WishedProduct } from "@/models/WishedProduct";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "./auth/[...nextauth]";
 
 export default async function handler(req, res) {
-  const session = await getSession({ req });
-  if (!session) return res.status(401).json({ error: "Not logged in" });
+  await mongooseConnect();
 
-  await connectToDB();
+  const session = await getServerSession(req, res, authOptions);
+  if (!session || !session.user?.email) {
+    return res.status(401).json({ error: "Non authentifié" });
+  }
+
   const userEmail = session.user.email;
 
   if (req.method === "GET") {
-    const wishlist = await Wishlist.find({ userEmail }).populate("product");
-    return res.json(wishlist);
+    try {
+      const wishlist = await WishedProduct.find({ userEmail }).populate("product");
+      return res.status(200).json(
+        wishlist.map(w => ({
+          _id: w._id,
+          product: w.product,
+          wished: true
+        }))
+      );
+    } catch (err) {
+      return res.status(500).json({ error: "Erreur lors de la récupération" });
+    }
   }
 
   if (req.method === "POST") {
     const { product } = req.body;
-    const exist = await Wishlist.findOne({ userEmail, product });
-    if (exist) return res.status(400).json({ error: "Already exists" });
-    const newFav = await Wishlist.create({ userEmail, product });
-    return res.json(newFav);
+    if (!product) return res.status(400).json({ error: "ID produit manquant" });
+
+    const existing = await WishedProduct.findOne({ userEmail, product });
+
+    if (existing) {
+      await WishedProduct.deleteOne({ _id: existing._id });
+      return res.status(200).json({ wished: false });
+    } else {
+      await WishedProduct.create({ userEmail, product });
+      return res.status(200).json({ wished: true });
+    }
   }
 
-  if (req.method === "DELETE") {
-    const { productId } = req.body;
-    await Wishlist.deleteOne({ userEmail, product: productId });
-    return res.json({ success: true });
-  }
-
-  res.status(405).json({ error: "Method not allowed" });
+  res.setHeader("Allow", ["GET", "POST"]);
+  return res.status(405).end(`Method ${req.method} Not Allowed`);
 }
