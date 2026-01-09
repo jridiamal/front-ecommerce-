@@ -1,6 +1,6 @@
 import { getSession } from "next-auth/react";
 import { connectToDB } from "@/lib/mongodb";
-import Wishlist from "@/models/Wishlist";
+import Wishlist from "@/models/WishedProduct";
 
 export default async function handler(req, res) {
   const session = await getSession({ req });
