@@ -175,7 +175,6 @@ export default function ProductBox({ _id, title, price, images = [], properties,
   const { status } = useSession();
   const imageRef = useRef(null);
 
-  const [isWished, setIsWished] = useState(wished);
   const colorVariants = properties?.colorVariants || [];
   const hasColors = colorVariants.length > 0;
 
@@ -186,18 +185,12 @@ export default function ProductBox({ _id, title, price, images = [], properties,
   const currentVariant = colorVariants.find(v => v.color === selectedColor);
   const isRupture = outOfStock || (selectedColor && currentVariant?.outOfStock);
   const canAddToCart = !outOfStock && (!selectedColor || !currentVariant?.outOfStock);
+  const [isWished, setIsWished] = useState(wished);
 
 
-
-useEffect(() => {
-  fetch("/api/wishlist")
-    .then(res => res.json())
-    .then(data => {
-      const exist = data.find(w => w.product._id === _id);
-      if (exist) setIsWished(true);
-    });
-}, []);
-
+  useEffect(() => {
+    setIsWished(wished);
+  }, [wished]);
 
   useEffect(() => {
     let interval;
@@ -214,27 +207,21 @@ useEffect(() => {
     return () => clearInterval(interval);
   }, [hovered, selectedColor, images]);
 
-async function toggleWishlist(e) {
+ async function toggleWishlist(e) {
   e.preventDefault();
+  if(status !== "authenticated"){ toast.error("Connectez-vous"); return; }
 
-  const next = !isWished;
-  setIsWished(next);
-
-  if (next) {
-    await fetch("/api/wishlist", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId: _id }),
-    });
-  } else {
-    await fetch("/api/wishlist", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId: _id }),
-    });
+  const nextValue = !isWished;
+  setIsWished(nextValue); 
+  try{
+    if(nextValue) await fetch("/api/wishlist", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({product: _id})});
+    else await fetch("/api/wishlist", {method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({productId: _id})});
+    toast.success(nextValue ? "Ajouté aux favoris" : "Retiré des favoris");
+  } catch {
+    setIsWished(!nextValue);
+    toast.error("Erreur réseau");
   }
 }
-
 
   function handleAddToCart(e) {
     e.preventDefault();

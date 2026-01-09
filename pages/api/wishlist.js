@@ -1,26 +1,25 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "./auth/[...nextauth]";
-import { mongooseConnect } from "@/lib/mongoose";
-import Wishlist from "@/models/WishedProduct";
+import { getSession } from "next-auth/react";
+import { connectToDB } from "@/lib/mongodb";
+import Wishlist from "@/models/Wishlist";
 
 export default async function handler(req, res) {
-  await mongooseConnect();
-  const session = await getServerSession(req, res, authOptions);
+  const session = await getSession({ req });
+  if (!session) return res.status(401).json({ error: "Not logged in" });
 
-  if (!session) return res.status(401).end();
-
+  await connectToDB();
   const userEmail = session.user.email;
 
-  if (req.method === "POST") {
-    const { productId } = req.body;
-    const exist = await Wishlist.findOne({ userEmail, product: productId });
-    if (exist) return res.json(exist);
+  if (req.method === "GET") {
+    const wishlist = await Wishlist.find({ userEmail }).populate("product");
+    return res.json(wishlist);
+  }
 
-    const wish = await Wishlist.create({
-      userEmail,
-      product: productId,
-    });
-    return res.json(wish);
+  if (req.method === "POST") {
+    const { product } = req.body;
+    const exist = await Wishlist.findOne({ userEmail, product });
+    if (exist) return res.status(400).json({ error: "Already exists" });
+    const newFav = await Wishlist.create({ userEmail, product });
+    return res.json(newFav);
   }
 
   if (req.method === "DELETE") {
@@ -29,10 +28,5 @@ export default async function handler(req, res) {
     return res.json({ success: true });
   }
 
-  if (req.method === "GET") {
-    const wishlist = await Wishlist.find({ userEmail }).populate("product");
-    return res.json(wishlist);
-  }
-
-  res.status(405).end();
+  res.status(405).json({ error: "Method not allowed" });
 }

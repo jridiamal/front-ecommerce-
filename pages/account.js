@@ -168,86 +168,213 @@ export default function AccountPage() {
   const [orders, setOrders] = useState([]);
   const [historique, setHistorique] = useState([]);
   const [wishlist, setWishlist] = useState([]);
-  const [activeView, setActiveView] = useState("dashboard");
+  const [activeView, setActiveView] = useState('dashboard');
 
   useEffect(() => {
     if (status === "authenticated") {
       fetch("/api/orders").then(res => res.json()).then(data => {
-        const active = data.filter(o => o.status === "En attente");
-        const hist = data.filter(o => ["Annulée","Livrée","Prête"].includes(o.status));
-        setOrders(active);
-        setHistorique(hist);
+        if (Array.isArray(data)) {
+          const active = data.filter(o => o.status === "En attente");
+          const hist = data.filter(o => ["Annulée", "Livrée", "Prête"].includes(o.status));
+          setOrders(active);
+          setHistorique(hist);
+        }
       });
-      fetch("/api/wishlist").then(res => res.json()).then(data => setWishlist(data));
+      fetch("/api/wishlist").then(res => res.json()).then(data => {
+        if (Array.isArray(data)) setWishlist(data);
+      });
     }
   }, [status]);
 
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm("Annuler cette commande ?")) return;
+    try {
+      const res = await fetch("/api/orders", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId })
+      });
+      if (res.ok) {
+        toast.success("Commande annulée");
+        const cancelled = orders.find(o => o._id === orderId);
+        setOrders(orders.filter(o => o._id !== orderId));
+        if (cancelled) {
+          setHistorique(prev => [...prev, { ...cancelled, status: "Annulée" }]);
+        }
+      }
+    } catch (err) { toast.error("Erreur"); }
+  };
+
+  const handleDeleteHistorique = async () => {
+    if (!window.confirm("Supprimer tout l’historique ?")) return;
+    try {
+      const res = await fetch("/api/historique", { method: "DELETE" });
+      if (res.ok) {
+        setHistorique([]);
+        toast.success("Historique supprimé");
+      } else toast.error("Erreur suppression");
+    } catch (err) { toast.error("Erreur réseau"); }
+  };
+
   if (status === "loading") return <><Header /><Container>Chargement...</Container></>;
   if (!session) return (
-    <>
-      <Header />
-      <Container>
-        <Card style={{ textAlign: "center" }}>
-          <h2>Mon Compte</h2>
-          <button onClick={() => signIn("google")} style={{ padding: "12px", width: "100%", maxWidth: "300px" }}>
-            Se connecter avec Google
-          </button>
-        </Card>
-      </Container>
-    </>
+    <><Header /><Container><Card style={{ textAlign: 'center' }}>
+      <h2>Mon Compte</h2>
+      <button onClick={() => signIn("google")} style={{ padding: '12px', width: '100%', maxWidth: '300px', cursor: 'pointer' }}>
+        Se connecter avec Google
+      </button>
+    </Card></Container></>
   );
 
   return (
     <>
       <Header />
       <Container>
-
-        {activeView === "wishlist" && (
+        {activeView === 'history' ? (
           <Card>
-            <BackButton onClick={() => setActiveView("dashboard")}>← Retour</BackButton>
-            <h3>❤️ Mes Favoris</h3>
-            {!wishlist.length ? <p>Aucun favori.</p> : (
-              <WishlistGrid>
-                {wishlist.map(w => (
-                  <Link key={w._id} href={`/product/${w.product._id}`}>
-                    <WishItem>
-                      <img src={w.product.images?.[0]} />
-                      <p>{w.product.title}</p>
-                    </WishItem>
-                  </Link>
-                ))}
-              </WishlistGrid>
+            <BackButton onClick={() => setActiveView('dashboard')}>
+              ← Retour au tableau de bord
+            </BackButton>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: '20px' }}>
+              <h3 style={{ fontSize: "18px", margin: 0 }}>📜 Historique des commandes</h3>
+              {historique.length > 0 && (
+                <button onClick={handleDeleteHistorique} style={{ background: "#fee2e2", color: "#991b1b", border: "1px solid #fecaca", borderRadius: "8px", padding: "6px 10px", cursor: "pointer", fontSize: "12px" }}>
+                  🗑️ Tout supprimer
+                </button>
+              )}
+            </div>
+            {!historique.length ? <p>Aucun historique.</p> : (
+              <OrdersTable>
+                <thead>
+                  <tr>
+                    <TableHeader>Statut</TableHeader>
+                    <TableHeader>Date</TableHeader>
+                    <TableHeader>Produits</TableHeader>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historique.map(order => (
+                    <tr key={order._id}>
+                      <TableCell data-label="Statut"><StatusBadge status={order.status}>{order.status}</StatusBadge></TableCell>
+                      <TableCell data-label="Date">{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell data-label="Produits">
+                        <ProductList>
+                          {order.line_items.map((item, i) => (
+                            <ProductItem key={i}>
+                              <ProductImage src={item.image} alt="" />
+                              <ProductText>
+                                <p><b>{item.name}</b></p>
+                                <p>Qté: {item.quantity} | {item.price} DT</p>
+                              </ProductText>
+                            </ProductItem>
+                          ))}
+                        </ProductList>
+                      </TableCell>
+                    </tr>
+                  ))}
+                </tbody>
+              </OrdersTable>
             )}
           </Card>
-        )}
-
-        {activeView === "dashboard" && (
+        ) : (
           <>
             <Card>
               <ProfileSection>
                 <AvatarWrapper onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
-                  <AvatarImage src={session.user.image} active={isDropdownOpen} />
+                  <AvatarImage src={session.user?.image || "/avatar.png"} active={isDropdownOpen} />
                   {isDropdownOpen && (
                     <DropdownMenu>
-                      <p style={{ fontSize: "12px" }}>{session.user.email}</p>
-                      <button onClick={() => { setActiveView("wishlist"); setIsDropdownOpen(false); }} style={{ width: "100%", padding: "8px", marginBottom: "8px" }}>
+                      <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Connecté en tant que</p>
+                      <p style={{ margin: '4px 0 12px 0', fontWeight: 700 }}>{session.user?.email}</p>
+                      <button
+                        onClick={() => {
+                          setActiveView('history');
+                          setIsDropdownOpen(false);
+                        }}
+                        style={{ width: '100%', padding: '8px', marginBottom: '8px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                      >
+                        📜 Historique
+                        {historique.length > 0 && (
+                          <span style={{ display: "inline-block", width: "10px", height: "10px", borderRadius: "50%", background: "#ef4444" }}></span>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setActiveView('dashboard');
+                          setIsDropdownOpen(false);
+                        }}
+                        style={{ width: '100%', padding: '8px', marginBottom: '8px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center' }}
+                      >
                         ❤️ Favoris
                       </button>
-                      <button onClick={() => signOut()} style={{ width: "100%", padding: "8px", background: "#ef4444", color: "#fff" }}>
+                      <button
+                        onClick={() => signOut()}
+                        style={{ width: '100%', padding: '8px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                      >
                         Se déconnecter
                       </button>
                     </DropdownMenu>
                   )}
                 </AvatarWrapper>
                 <div>
-                  <h2>Bonjour, {session.user.name}</h2>
-                  <p>Gérez vos commandes et favoris</p>
+                  <h2 style={{ margin: 0, fontSize: '1.4rem' }}>Bonjour, {session.user?.name}</h2>
+                  <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>Gérez vos commandes et favoris</p>
                 </div>
               </ProfileSection>
             </Card>
+            <Card>
+              <h3 style={{ fontSize: '18px', marginBottom: '15px' }}>❤️ Mes Favoris</h3>
+              {!wishlist.length ? <p>Aucun favori.</p> : (
+                <WishlistGrid>
+                  {wishlist.map(w => w.product && (
+                    <Link href={`/product/${w.product._id}`} key={w._id} style={{ textDecoration: 'none' }}>
+                      <WishItem>
+                        <img src={w.product.images?.[0]} alt="" />
+                        <p>{w.product.title}</p>
+                      </WishItem>
+                    </Link>
+                  ))}
+                </WishlistGrid>
+              )}
+            </Card>
+            <Card>
+              <h3 style={{ fontSize: '18px', marginBottom: '15px' }}>📦 Mes Commandes</h3>
+              {!orders.length ? <p>Aucune commande.</p> : (
+                <OrdersTable>
+                  <thead>
+                    <tr>
+                      <TableHeader>Statut</TableHeader>
+                      <TableHeader>Date</TableHeader>
+                      <TableHeader>Produits</TableHeader>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.map(order => (
+                      <tr key={order._id}>
+                        <TableCell data-label="Statut"><StatusBadge status={order.status}>{order.status}</StatusBadge></TableCell>
+                        <TableCell data-label="Date">{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                        <TableCell data-label="Produits">
+                          <ProductList>
+                            {order.line_items.map((item, i) => (
+                              <ProductItem key={i}>
+                                <ProductImage src={item.image} alt="" />
+                                <ProductText>
+                                  <p><b>{item.name}</b></p>
+                                  <p>Qté: {item.quantity} | {item.price} DT</p>
+                                </ProductText>
+                              </ProductItem>
+                            ))}
+                          </ProductList>
+                          {order.status === "En attente" && <CancelButton onClick={() => handleCancelOrder(order._id)}>Annuler la commande</CancelButton>}
+                        </TableCell>
+                      </tr>
+                    ))}
+                  </tbody>
+                </OrdersTable>
+              )}
+            </Card>
           </>
         )}
-
         <ToastContainer position="bottom-center" />
       </Container>
     </>
