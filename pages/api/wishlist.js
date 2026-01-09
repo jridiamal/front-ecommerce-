@@ -1,5 +1,5 @@
 import { mongooseConnect } from "@/lib/mongoose";
-import { WishedProduct } from "@/models/WishedProduct";
+import Wishlist from "@/models/WishedProduct";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
 
@@ -15,7 +15,7 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     try {
-      const wishlist = await WishedProduct.find({ userEmail }).populate("product");
+      const wishlist = await Wishlist.find({ userEmail }).populate("product");
       return res.status(200).json(
         wishlist.map(w => ({
           _id: w._id,
@@ -32,13 +32,13 @@ export default async function handler(req, res) {
     const { product } = req.body;
     if (!product) return res.status(400).json({ error: "ID produit manquant" });
 
-    const existing = await WishedProduct.findOne({ userEmail, product });
+    const existing = await Wishlist.findOne({ userEmail, product });
 
     if (existing) {
-      await WishedProduct.deleteOne({ _id: existing._id });
+      await Wishlist.deleteOne({ _id: existing._id });
       return res.status(200).json({ wished: false });
     } else {
-      await WishedProduct.create({ userEmail, product });
+      await Wishlist.create({ userEmail, product });
       return res.status(200).json({ wished: true });
     }
   }

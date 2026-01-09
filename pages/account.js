@@ -14,6 +14,7 @@ const Container = styled.div`
   background-color: #f8fafc;
   @media (min-width: 768px) { padding: 30px; }
 `;
+
 const Card = styled.div`
   background: #fff;
   border-radius: 12px;
@@ -25,6 +26,7 @@ const Card = styled.div`
   box-sizing: border-box;
   @media (min-width: 768px) { padding: 25px; margin-bottom: 25px; }
 `;
+
 const ProfileSection = styled.div`
   display: flex;
   flex-direction: column;
@@ -33,10 +35,12 @@ const ProfileSection = styled.div`
   gap: 15px;
   @media (min-width: 640px) { flex-direction: row; text-align: left; }
 `;
+
 const AvatarWrapper = styled.div`
   position: relative;
   z-index: 20;
 `;
+
 const AvatarImage = styled.img`
   border-radius: 50%;
   width: 70px;
@@ -45,6 +49,7 @@ const AvatarImage = styled.img`
   border: ${props => (props.active ? "3px solid #2563eb" : "2px solid #e2e8f0")};
   cursor: pointer;
 `;
+
 const DropdownMenu = styled.div`
   position: absolute;
   top: 100%;
@@ -59,6 +64,7 @@ const DropdownMenu = styled.div`
   z-index: 100;
   @media (min-width: 640px) { left: 0; transform: none; }
 `;
+
 const OrdersTable = styled.table`
   width: 100%;
   border-collapse: collapse;
@@ -90,6 +96,7 @@ const OrdersTable = styled.table`
     }
   }
 `;
+
 const TableHeader = styled.th`
   text-align: left;
   padding: 12px;
@@ -97,7 +104,9 @@ const TableHeader = styled.th`
   color: #64748b;
   border-bottom: 2px solid #e2e8f0;
 `;
+
 const TableCell = styled.td`padding: 12px; border-bottom: 1px solid #f1f5f9;`;
+
 const WishlistGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2,1fr);
@@ -105,6 +114,7 @@ const WishlistGrid = styled.div`
   margin-top:15px;
   @media (min-width:640px){grid-template-columns: repeat(auto-fill,minmax(150px,1fr));gap:20px;}
 `;
+
 const WishItem = styled.div`
   border: 1px solid #f1f5f9;
   padding: 10px;
@@ -120,12 +130,15 @@ const WishItem = styled.div`
   img { width: 100%; height: 120px; object-fit: contain; margin-bottom: 8px; }
   p { font-size: 13px; margin: 0; font-weight: 600; color: #334155; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 `;
+
 const ProductList = styled.div`display:flex; flex-direction:column; gap:10px;`;
 const ProductItem = styled.div`display:flex; align-items:center; gap:12px;`;
 const ProductImage = styled.img`
   width:50px; height:50px; border-radius:8px; object-fit:cover; flex-shrink:0;
 `;
+
 const ProductText = styled.div`p{margin:0; font-size:13px;color:#374151;line-height:1.2;}`;
+
 const StatusBadge = styled.span`
   padding:4px 12px;
   border-radius:20px;
@@ -135,6 +148,7 @@ const StatusBadge = styled.span`
   background:${props => props.status === "Prête" ? "#dcfce7" : props.status === "Annulée" ? "#fee2e2" : "#f1f5f9"};
   color:${props => props.status === "Prête" ? "#166534" : props.status === "Annulée" ? "#991b1b" : "#475569"};
 `;
+
 const CancelButton = styled.button`
   padding:8px 15px;
   background:#fff1f2;
@@ -148,6 +162,7 @@ const CancelButton = styled.button`
   width:100%;
   @media(min-width:768px){width:auto;}
 `;
+
 const BackButton = styled.button`
   background: transparent;
   border: 1px solid #cbd5e1;
@@ -304,6 +319,7 @@ export default function AccountPage() {
                         onClick={() => {
                           setActiveView('dashboard');
                           setIsDropdownOpen(false);
+                          document.getElementById('favoris-section')?.scrollIntoView({behavior: 'smooth'});
                         }}
                         style={{ width: '100%', padding: '8px', marginBottom: '8px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center' }}
                       >
