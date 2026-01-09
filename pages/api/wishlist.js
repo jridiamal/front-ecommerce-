@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
 import { mongooseConnect } from "@/lib/mongoose";
-import Wishlist from "@/models/Wishlist";
+import Wishlist from "@/models/WishedProduct";
 
 export default async function handler(req, res) {
   await mongooseConnect();
