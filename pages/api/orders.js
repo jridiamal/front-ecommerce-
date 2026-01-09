@@ -1,7 +1,9 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import { Order } from "@/models/Order";
+import Employee from "@/models/Employee"; // import model employee
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
+import { sendOrderEmail } from "@/lib/mailer"; // مكتوب سابقا باش يرسل ايميل
 
 export default async function handler(req, res) {
   await mongooseConnect();
@@ -18,7 +20,57 @@ export default async function handler(req, res) {
       const orders = await Order.find({ email: userEmail }).sort({ createdAt: -1 });
       return res.status(200).json(orders);
     } catch (err) {
+      console.error("Erreur GET orders:", err);
       return res.status(500).json({ error: "Erreur GET" });
+    }
+  }
+
+  // ---------------- POST -----------------
+  if (req.method === "POST") {
+    try {
+      const { name, phone, streetAddress, country, line_items, total } = req.body;
+
+      if (!line_items || line_items.length === 0) {
+        return res.status(400).json({ error: "Le panier est vide" });
+      }
+
+      // إنشاء طلب جديد
+      const newOrder = await Order.create({
+        userId: session.user.id,
+        name,
+        email: userEmail,
+        phone,
+        streetAddress,
+        country,
+        line_items,
+        total,
+        status: "En attente",
+      });
+
+      // ✅ نبعث إيميل لكل الموظفين المعتمدين
+      const approvedEmployees = await Employee.find({ status: "approved" });
+      const employeeEmails = approvedEmployees.map(emp => emp.email);
+
+      for (const email of employeeEmails) {
+        await sendOrderEmail({
+          to: email,
+          subject: "Nouvelle commande client",
+          html: `
+            <h2>Bonjour 👋</h2>
+            <p>Un client a passé une nouvelle commande.</p>
+            <p><strong>Client :</strong> ${name} (${userEmail})</p>
+            <p><strong>Total :</strong> ${total} DT</p>
+            <p>Merci de vérifier et traiter la commande.</p>
+            <hr/>
+            <p>Société FBM</p>
+          `,
+        });
+      }
+
+      return res.status(201).json(newOrder);
+    } catch (err) {
+      console.error("Erreur POST orders:", err);
+      return res.status(500).json({ error: "Erreur serveur lors du POST" });
     }
   }
 
@@ -38,6 +90,7 @@ export default async function handler(req, res) {
       await order.save();
       return res.status(200).json(order);
     } catch (err) {
+      console.error("Erreur PUT orders:", err);
       return res.status(500).json({ error: "Erreur PUT" });
     }
   }
@@ -56,6 +109,7 @@ export default async function handler(req, res) {
 
       return res.status(200).json({ message: "Commande annulée avec succès" });
     } catch (err) {
+      console.error("Erreur DELETE orders:", err);
       return res.status(500).json({ error: "Erreur DELETE" });
     }
   }
