@@ -1,9 +1,10 @@
+// components/ProductBox.tsx
 "use client";
 import styled, { keyframes } from "styled-components";
 import Link from "next/link";
 import { useContext, useRef, useState, useEffect } from "react";
-import { CartContext } from "@/components/CartContext";
-import { AnimationContext } from "@/components/AnimationContext";
+import { CartContext } from "./CartContext";
+import { AnimationContext } from "./AnimationContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
 import axios from "axios";
@@ -186,9 +187,17 @@ export default function ProductBox({ _id, title, price, images = [], properties,
   const isRupture = outOfStock || (selectedColor && currentVariant?.outOfStock);
   const canAddToCart = !outOfStock && (!selectedColor || !currentVariant?.outOfStock);
 
-  useEffect(() => {
-    setIsWished(wished);
-  }, [wished]);
+
+
+useEffect(() => {
+  fetch("/api/wishlist")
+    .then(res => res.json())
+    .then(data => {
+      const exist = data.find(w => w.product._id === _id);
+      if (exist) setIsWished(true);
+    });
+}, []);
+
 
   useEffect(() => {
     let interval;
@@ -205,22 +214,27 @@ export default function ProductBox({ _id, title, price, images = [], properties,
     return () => clearInterval(interval);
   }, [hovered, selectedColor, images]);
 
-  async function toggleWishlist(e) {
-    e.preventDefault();
-    if (status !== "authenticated") {
-      toast.error("Veuillez vous connecter");
-      return;
-    }
-    const nextValue = !isWished;
-    setIsWished(nextValue);
-    try {
-      await axios.post("/api/wishlist", { product: _id });
-      toast.success(nextValue ? "Ajouté aux favoris" : "Retiré des favoris");
-    } catch {
-      setIsWished(!nextValue);
-      toast.error("Erreur de connexion");
-    }
+async function toggleWishlist(e) {
+  e.preventDefault();
+
+  const next = !isWished;
+  setIsWished(next);
+
+  if (next) {
+    await fetch("/api/wishlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId: _id }),
+    });
+  } else {
+    await fetch("/api/wishlist", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId: _id }),
+    });
   }
+}
+
 
   function handleAddToCart(e) {
     e.preventDefault();

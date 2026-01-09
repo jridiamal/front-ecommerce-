@@ -1,48 +1,38 @@
-import { mongooseConnect } from "@/lib/mongoose";
-import { WishedProduct } from "@/models/WishedProduct";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
+import { mongooseConnect } from "@/lib/mongoose";
+import Wishlist from "@/models/Wishlist";
 
 export default async function handler(req, res) {
   await mongooseConnect();
-
   const session = await getServerSession(req, res, authOptions);
-  if (!session || !session.user?.email) {
-    return res.status(401).json({ error: "Non authentifié" });
-  }
+
+  if (!session) return res.status(401).end();
 
   const userEmail = session.user.email;
 
-  if (req.method === "GET") {
-    try {
-      const wishlist = await WishedProduct.find({ userEmail }).populate("product");
-      return res.status(200).json(
-        wishlist.map(w => ({
-          _id: w._id,
-          product: w.product,
-          wished: true
-        }))
-      );
-    } catch (err) {
-      return res.status(500).json({ error: "Erreur lors de la récupération" });
-    }
-  }
-
   if (req.method === "POST") {
-    const { product } = req.body;
-    if (!product) return res.status(400).json({ error: "ID produit manquant" });
+    const { productId } = req.body;
+    const exist = await Wishlist.findOne({ userEmail, product: productId });
+    if (exist) return res.json(exist);
 
-    const existing = await WishedProduct.findOne({ userEmail, product });
-
-    if (existing) {
-      await WishedProduct.deleteOne({ _id: existing._id });
-      return res.status(200).json({ wished: false });
-    } else {
-      await WishedProduct.create({ userEmail, product });
-      return res.status(200).json({ wished: true });
-    }
+    const wish = await Wishlist.create({
+      userEmail,
+      product: productId,
+    });
+    return res.json(wish);
   }
 
-  res.setHeader("Allow", ["GET", "POST"]);
-  return res.status(405).end(`Method ${req.method} Not Allowed`);
+  if (req.method === "DELETE") {
+    const { productId } = req.body;
+    await Wishlist.deleteOne({ userEmail, product: productId });
+    return res.json({ success: true });
+  }
+
+  if (req.method === "GET") {
+    const wishlist = await Wishlist.find({ userEmail }).populate("product");
+    return res.json(wishlist);
+  }
+
+  res.status(405).end();
 }

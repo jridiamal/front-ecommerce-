@@ -1,12 +1,12 @@
-import { Schema, model, models } from "mongoose";
+import mongoose from "mongoose";
 
-const WishedProductSchema = new Schema(
+const WishlistSchema = new mongoose.Schema(
   {
     userEmail: { type: String, required: true },
-    product: { type: Schema.Types.ObjectId, ref: "Product", required: true },
+    product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
   },
   { timestamps: true }
 );
 
-export const WishedProduct =
-  models.WishedProduct || model("WishedProduct", WishedProductSchema);
+export default mongoose.models.Wishlist ||
+  mongoose.model("Wishlist", WishlistSchema);
