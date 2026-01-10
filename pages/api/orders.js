@@ -3,8 +3,7 @@ import { Order } from "@/models/Order";
 import Employee from "@/models/Employee"; // import model employee
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
-import { sendOrderEmail } from "@/lib/mailer"; // مكتوب سابقا باش يرسل ايميل
-
+import { sendEmail } from "@/lib/mailer"; // Correct - import sendEmail instead
 export default async function handler(req, res) {
   await mongooseConnect();
 
