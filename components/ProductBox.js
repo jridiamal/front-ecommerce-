@@ -7,7 +7,6 @@ import { CartContext } from "./CartContext";
 import { AnimationContext } from "./AnimationContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
-import axios from "axios";
 import { toast } from "react-toastify";
 
 const shine = keyframes`
@@ -98,8 +97,6 @@ const ActionButton = styled.button`
   cursor: pointer;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
   transition: all 0.3s ease;
-  /* REMOVED: transform: translateX(-50px); opacity: 0; */
-  /* REMOVED: ${Card}:hover & { transform: translateX(0); opacity: 1; transition-delay: ${({ delay }) => delay || "0s"}; } */
   &:hover {
     background: #000;
     color: #fff;
@@ -178,8 +175,14 @@ export default function ProductBox({ _id, title, price, images = [], properties,
   const [hovered, setHovered] = useState(false);
 
   const currentVariant = colorVariants.find(v => v.color === selectedColor);
-  const isRupture = outOfStock || (selectedColor && currentVariant?.outOfStock);
-  const canAddToCart = !outOfStock && (!selectedColor || !currentVariant?.outOfStock);
+  const isProductOutOfStock = outOfStock;
+  const isSelectedColorOutOfStock = selectedColor && currentVariant?.outOfStock;
+  const isRupture = isProductOutOfStock || isSelectedColorOutOfStock;
+  
+  // CORRECTION: Logique pour ajouter au panier
+  const canAddToCart = !isProductOutOfStock && 
+    (!selectedColor || (currentVariant && !currentVariant.outOfStock));
+  
   const [isWished, setIsWished] = useState(wished);
 
   useEffect(() => {
@@ -203,13 +206,27 @@ export default function ProductBox({ _id, title, price, images = [], properties,
 
   async function toggleWishlist(e) {
     e.preventDefault();
-    if(status !== "authenticated"){ toast.error("Connectez-vous"); return; }
+    if(status !== "authenticated"){ 
+      toast.error("Connectez-vous pour ajouter aux favoris"); 
+      return; 
+    }
 
     const nextValue = !isWished;
     setIsWished(nextValue); 
     try{
-      if(nextValue) await fetch("/api/wishlist", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({product: _id})});
-      else await fetch("/api/wishlist", {method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({productId: _id})});
+      if(nextValue) {
+        await fetch("/api/wishlist", {
+          method:"POST", 
+          headers:{"Content-Type":"application/json"}, 
+          body:JSON.stringify({product: _id})
+        });
+      } else {
+        await fetch("/api/wishlist", {
+          method:"DELETE", 
+          headers:{"Content-Type":"application/json"}, 
+          body:JSON.stringify({productId: _id})
+        });
+      }
       toast.success(nextValue ? "Ajouté aux favoris" : "Retiré des favoris");
     } catch {
       setIsWished(!nextValue);
@@ -219,20 +236,26 @@ export default function ProductBox({ _id, title, price, images = [], properties,
 
   function handleAddToCart(e) {
     e.preventDefault();
-    if (!canAddToCart) return;
+    if (!canAddToCart) {
+      toast.error("Produit épuisé");
+      return;
+    }
 
     if (imageRef.current) {
       triggerFlyAnimation(imageRef.current, imageRef.current.getBoundingClientRect());
     }
 
+    // CORRECTION: Ajout de toutes les informations nécessaires
     addProduct({
       _id,
-      title, // ADDED: title
-      price, // ADDED: price
+      title,
+      price,
       colorId: currentVariant?._id || null,
       color: currentVariant?.color || null,
       image: currentImage,
     });
+    
+    toast.success("Produit ajouté au panier");
   }
 
   return (
@@ -284,10 +307,14 @@ export default function ProductBox({ _id, title, price, images = [], properties,
                 isOutOfStock={v.outOfStock}
                 onClick={(e) => {
                   e.preventDefault();
-                  if (v.outOfStock) return;
+                  if (v.outOfStock) {
+                    toast.error("Cette couleur est épuisée");
+                    return;
+                  }
                   setSelectedColor(v.color);
                   if (v.imageUrl) setCurrentImage(v.imageUrl);
                 }}
+                title={`${v.color} ${v.outOfStock ? '(Épuisé)' : ''}`}
               />
             ))}
           </ColorWrapper>

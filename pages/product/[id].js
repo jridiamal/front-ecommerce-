@@ -1,3 +1,4 @@
+// pages/product/[id].jsx
 "use client";
 import Header from "@/components/Header";
 import Center from "@/components/Center";
@@ -10,9 +11,9 @@ import { CartContext } from "@/components/CartContext";
 import { AnimationContext } from "@/components/AnimationContext";
 import { motion } from "framer-motion";
 import ProductBox from "@/components/ProductBox";
+import { toast } from "react-toastify";
 
 const accent = "#5542F6";
-
 
 const Page = styled.div`
   background: #f9fafb;
@@ -84,6 +85,10 @@ const QtyBtn = styled.button`
   font-size: 20px;
   background: white;
   cursor: pointer;
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
 const AddBtn = styled(motion.button)`
@@ -95,6 +100,11 @@ const AddBtn = styled(motion.button)`
   color: white;
   font-size: 1rem;
   margin-top: 10px;
+  &:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
 `;
 
 const Ribbon = styled.div`
@@ -192,28 +202,51 @@ export default function ProductPage({ product, recommended }) {
     ? colorVariants.find(v => v.color === selectedColor) 
     : null;
 
-  // Global out of stock logic
-  const isRupture = product.stock === 0 || (selectedColor && currentVariant?.outOfStock);
+  // CORRECTION: Logique de rupture améliorée
+  const isProductOutOfStock = product.stock === 0;
+  const isSelectedColorOutOfStock = selectedColor && currentVariant?.outOfStock;
+  const isRupture = isProductOutOfStock || isSelectedColorOutOfStock;
+  
+  // CORRECTION: Logique pour ajouter au panier
+  const canAddToCart = !isProductOutOfStock && 
+    (!selectedColor || (currentVariant && !currentVariant.outOfStock));
 
-  // Selection logic: Can add if product has stock AND (no color selected or selected color is in stock)
-  const canAddToCart = product.stock > 0 && (!selectedColor || !currentVariant?.outOfStock);
-
+  // CORRECTION: Fonction handleAddToCart complète
   function handleAddToCart() {
-    if (!canAddToCart) return;
+    if (!canAddToCart) {
+      if (isProductOutOfStock) {
+        toast.error("Ce produit est épuisé");
+      } else if (isSelectedColorOutOfStock) {
+        toast.error(`La couleur ${selectedColor} est épuisée`);
+      }
+      return;
+    }
 
+    // Obtenir l'image correcte pour le panier
+    const imageToUse = currentVariant?.imageUrl || currentImage;
+
+    // Déclencher l'animation de vol si l'image est disponible
     if (imgRef.current) {
       triggerFlyAnimation(imgRef.current, imgRef.current.getBoundingClientRect());
     }
 
-    // Loop to handle the quantity state
+    // Ajouter le produit au panier pour chaque quantité
     for (let i = 0; i < qty; i++) {
       addProduct({
         _id: product._id,
-        image: currentImage, // Uses whatever image is currently displayed
+        title: product.title,
+        price: product.price,
+        image: imageToUse,
         color: currentVariant?.color || null,
         colorId: currentVariant?._id || null,
       });
     }
+    
+    // Message de confirmation
+    const message = qty > 1 
+      ? `${qty} produits ajoutés au panier` 
+      : "Produit ajouté au panier";
+    toast.success(message);
   }
 
   return (
@@ -224,7 +257,7 @@ export default function ProductPage({ product, recommended }) {
           <Box initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}>
             {isRupture && <Ribbon>RUPTURE</Ribbon>}
             <ImgWrapper ref={imgRef}>
-              <MainImg src={currentImage} />
+              <MainImg src={currentImage} alt={product.title} />
             </ImgWrapper>
             <Thumbs>
               {product.images.map((img, i) => (
@@ -233,11 +266,18 @@ export default function ProductPage({ product, recommended }) {
                   src={img} 
                   onClick={() => {
                     setCurrentImage(img);
-                    // If user clicks a thumb that doesn't match selected color, deselect color
-                    if (currentVariant && currentVariant.imageUrl !== img) {
-                      setSelectedColor(null);
+                    // Si l'utilisateur clique sur une vignette, vérifier si elle correspond à une variante de couleur
+                    if (selectedColor) {
+                      const variantForThisImage = colorVariants.find(v => v.imageUrl === img);
+                      if (!variantForThisImage || variantForThisImage.color !== selectedColor) {
+                        setSelectedColor(null);
+                      }
                     }
                   }} 
+                  alt={`Vue ${i + 1} de ${product.title}`}
+                  style={{
+                    border: currentImage === img ? `2px solid ${accent}` : '2px solid transparent'
+                  }}
                 />
               ))}
             </Thumbs>
@@ -249,38 +289,62 @@ export default function ProductPage({ product, recommended }) {
             <Price>{product.price.toFixed(2)} DT <span>(HT)</span></Price>
 
             {hasColors && (
-              <ColorWrapper>
-                {colorVariants.map((v, i) => (
-                  <ColorCircle
-                    key={i}
-                    color={v.color}
-                    active={selectedColor === v.color}
-                    isOutOfStock={v.outOfStock}
-                    onClick={() => {
-                      if (v.outOfStock) return;
-                      setSelectedColor(v.color);
-                      if (v.imageUrl) setCurrentImage(v.imageUrl);
-                    }}
-                  />
-                ))}
-              </ColorWrapper>
+              <>
+                <p style={{ fontSize: '0.9rem', marginBottom: '5px', fontWeight: '500' }}>
+                  Choisissez une couleur:
+                </p>
+                <ColorWrapper>
+                  {colorVariants.map((v, i) => (
+                    <ColorCircle
+                      key={i}
+                      color={v.color}
+                      active={selectedColor === v.color}
+                      isOutOfStock={v.outOfStock}
+                      onClick={() => {
+                        if (v.outOfStock) {
+                          toast.error(`La couleur ${v.color} est épuisée`);
+                          return;
+                        }
+                        setSelectedColor(v.color);
+                        if (v.imageUrl) {
+                          setCurrentImage(v.imageUrl);
+                        }
+                      }}
+                      title={`${v.color} ${v.outOfStock ? '(Épuisé)' : ''}`}
+                    />
+                  ))}
+                </ColorWrapper>
+                {selectedColor && (
+                  <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
+                    Couleur sélectionnée: <strong>{selectedColor}</strong>
+                  </p>
+                )}
+              </>
             )}
 
             <Qty>
-              <QtyBtn onClick={() => setQty(q => Math.max(1, q - 1))}>-</QtyBtn>
+              <QtyBtn 
+                onClick={() => setQty(q => Math.max(1, q - 1))}
+                disabled={!canAddToCart}
+              >
+                -
+              </QtyBtn>
               <strong>{qty}</strong>
-              <QtyBtn onClick={() => setQty(q => q + 1)}>+</QtyBtn>
+              <QtyBtn 
+                onClick={() => setQty(q => q + 1)}
+                disabled={!canAddToCart}
+              >
+                +
+              </QtyBtn>
             </Qty>
 
             <AddBtn
               disabled={!canAddToCart}
-              style={{
-                opacity: canAddToCart ? 1 : .5,
-                cursor: canAddToCart ? "pointer" : "not-allowed",
-              }}
               onClick={handleAddToCart}
+              whileHover={canAddToCart ? { scale: 1.02 } : {}}
+              whileTap={canAddToCart ? { scale: 0.98 } : {}}
             >
-              {isRupture ? "Produit épuisé" : "Ajouter au panier"}
+              {isRupture ? "Produit épuisé" : `Ajouter au panier (${qty})`}
             </AddBtn>
           </Box>
         </Grid>
