@@ -1,9 +1,10 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import { Order } from "@/models/Order";
-import Employee from "@/models/Employee"; // import model employee
+import Employee from "@/models/Employee";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
-import { sendEmail } from "@/lib/mailer"; // Correct - import sendEmail instead
+import { sendEmail } from "@/lib/mailer"; // Keep this import
+
 export default async function handler(req, res) {
   await mongooseConnect();
 
@@ -51,7 +52,8 @@ export default async function handler(req, res) {
       const employeeEmails = approvedEmployees.map(emp => emp.email);
 
       for (const email of employeeEmails) {
-        await sendOrderEmail({
+        // FIX: Change sendOrderEmail to sendEmail
+        await sendEmail({
           to: email,
           subject: "Nouvelle commande client",
           html: `
@@ -115,3 +117,4 @@ export default async function handler(req, res) {
 
   return res.status(405).json({ error: "Méthode non autorisée" });
 }
+
