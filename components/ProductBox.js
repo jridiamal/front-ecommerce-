@@ -98,13 +98,8 @@ const ActionButton = styled.button`
   cursor: pointer;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
   transition: all 0.3s ease;
-  transform: translateX(-50px);
-  opacity: 0;
-  ${Card}:hover & {
-    transform: translateX(0);
-    opacity: 1;
-    transition-delay: ${({ delay }) => delay || "0s"};
-  }
+  /* REMOVED: transform: translateX(-50px); opacity: 0; */
+  /* REMOVED: ${Card}:hover & { transform: translateX(0); opacity: 1; transition-delay: ${({ delay }) => delay || "0s"}; } */
   &:hover {
     background: #000;
     color: #fff;
@@ -187,7 +182,6 @@ export default function ProductBox({ _id, title, price, images = [], properties,
   const canAddToCart = !outOfStock && (!selectedColor || !currentVariant?.outOfStock);
   const [isWished, setIsWished] = useState(wished);
 
-
   useEffect(() => {
     setIsWished(wished);
   }, [wished]);
@@ -207,21 +201,21 @@ export default function ProductBox({ _id, title, price, images = [], properties,
     return () => clearInterval(interval);
   }, [hovered, selectedColor, images]);
 
- async function toggleWishlist(e) {
-  e.preventDefault();
-  if(status !== "authenticated"){ toast.error("Connectez-vous"); return; }
+  async function toggleWishlist(e) {
+    e.preventDefault();
+    if(status !== "authenticated"){ toast.error("Connectez-vous"); return; }
 
-  const nextValue = !isWished;
-  setIsWished(nextValue); 
-  try{
-    if(nextValue) await fetch("/api/wishlist", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({product: _id})});
-    else await fetch("/api/wishlist", {method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({productId: _id})});
-    toast.success(nextValue ? "Ajouté aux favoris" : "Retiré des favoris");
-  } catch {
-    setIsWished(!nextValue);
-    toast.error("Erreur réseau");
+    const nextValue = !isWished;
+    setIsWished(nextValue); 
+    try{
+      if(nextValue) await fetch("/api/wishlist", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({product: _id})});
+      else await fetch("/api/wishlist", {method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({productId: _id})});
+      toast.success(nextValue ? "Ajouté aux favoris" : "Retiré des favoris");
+    } catch {
+      setIsWished(!nextValue);
+      toast.error("Erreur réseau");
+    }
   }
-}
 
   function handleAddToCart(e) {
     e.preventDefault();
@@ -233,6 +227,8 @@ export default function ProductBox({ _id, title, price, images = [], properties,
 
     addProduct({
       _id,
+      title, // ADDED: title
+      price, // ADDED: price
       colorId: currentVariant?._id || null,
       color: currentVariant?.color || null,
       image: currentImage,
@@ -244,28 +240,34 @@ export default function ProductBox({ _id, title, price, images = [], properties,
       {isRupture && <StockRibbon><ShineEffect />Rupture</StockRibbon>}
       <ImageBox onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
         <Link href={`/product/${_id}`}>
-        <AnimatePresence mode="wait">
-          <AnimatedProductImg
-            key={currentImage}
-            ref={imageRef}
-            src={currentImage}
-            alt={title}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          />
-        </AnimatePresence>
+          <AnimatePresence mode="wait">
+            <AnimatedProductImg
+              key={currentImage}
+              ref={imageRef}
+              src={currentImage}
+              alt={title}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            />
+          </AnimatePresence>
         </Link>
         <IconsOverlay>
-          <ActionButton type="button" className={isWished ? "wished" : ""} onClick={toggleWishlist}>
+          <ActionButton 
+            type="button" 
+            className={isWished ? "wished" : ""} 
+            onClick={toggleWishlist}
+          >
             <svg viewBox="0 0 24 24"><path d="M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"/></svg>
           </ActionButton>
           <ActionButton 
             type="button" 
-            delay="0.1s" 
             onClick={handleAddToCart}
-            style={{ opacity: canAddToCart ? 1 : 0.4, cursor: canAddToCart ? "pointer" : "not-allowed" }}
+            style={{ 
+              opacity: canAddToCart ? 1 : 0.4, 
+              cursor: canAddToCart ? "pointer" : "not-allowed" 
+            }}
           >
             <svg viewBox="0 0 24 24"><path d="M17,18A2,2 0 0,1 19,20A2,2 0 0,1 17,22C15.89,22 15,21.1 15,20C15,18.89 15.89,18 17,18M1,2H4.27L5.21,4H20A1,1 0 0,1 21,5C21,5.17 20.95,5.34 20.88,5.5L17.3,11.97C16.96,12.58 16.3,13 15.55,13H8.1L7.2,14.63L7.17,14.75A0.25,0.25 0 0,0 7.42,15H19V17H7C5.89,17 5,16.1 5,15C5,14.65 5.09,14.32 5.24,14.04L6.6,11.59L3,4H1V2M7,18A2,2 0 0,1 9,20A2,2 0 0,1 7,22C5.89,22 5,21.1 5,20C5,18.89 5.89,18 7,18M16,11L18.78,6H6.14L8.5,11H16Z" /></svg>
           </ActionButton>

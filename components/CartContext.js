@@ -21,6 +21,8 @@ export function CartContextProvider({ children }) {
   /**
    * item = {
    *   _id: productId,
+   *   title,
+   *   price,
    *   colorId,
    *   color,
    *   image,
@@ -53,6 +55,16 @@ export function CartContextProvider({ children }) {
     ls?.removeItem("cart");
   }
 
+  // Helper function to calculate total price
+  function getCartTotal() {
+    return cartProducts.reduce((total, item) => total + (item.price || 0), 0);
+  }
+
+  // Helper function to get cart count
+  function getCartCount() {
+    return cartProducts.length;
+  }
+
   return (
     <CartContext.Provider
       value={{
@@ -60,6 +72,8 @@ export function CartContextProvider({ children }) {
         addProduct,
         removeProduct,
         clearCart,
+        getCartTotal,
+        getCartCount,
       }}
     >
       {children}
