@@ -1,9 +1,9 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import { Order } from "@/models/Order";
+import Employee from "@/models/Employee";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
-import { sendEmail } from "@/lib/mailer";
-import clientPromise from "@/lib/mongodb"; // Add this import
+import { sendEmail } from "@/lib/mailer"; // Keep this import
 
 export default async function handler(req, res) {
   await mongooseConnect();
@@ -48,44 +48,25 @@ export default async function handler(req, res) {
       });
 
       // ✅ نبعث إيميل لكل الموظفين المعتمدين
-      // Use the same MongoDB approach as your other API
-      const client = await clientPromise;
-      const db = client.db("company_db");
-      const employeesCollection = db.collection("employees");
-      
-      const approvedEmployees = await employeesCollection
-        .find({ status: "approved" })
-        .toArray();
-      
-      console.log(`Found ${approvedEmployees.length} approved employees`);
-      
+      const approvedEmployees = await Employee.find({ status: "approved" });
       const employeeEmails = approvedEmployees.map(emp => emp.email);
 
-      // إرسال الإيميلات بشكل متوازي
-      const emailPromises = employeeEmails.map(email => 
-        sendEmail({
+      for (const email of employeeEmails) {
+        // FIX: Change sendOrderEmail to sendEmail
+        await sendEmail({
           to: email,
           subject: "Nouvelle commande client",
           html: `
             <h2>Bonjour 👋</h2>
             <p>Un client a passé une nouvelle commande.</p>
             <p><strong>Client :</strong> ${name} (${userEmail})</p>
-            <p><strong>Téléphone :</strong> ${phone}</p>
-            <p><strong>Adresse :</strong> ${streetAddress}, ${country}</p>
             <p><strong>Total :</strong> ${total} DT</p>
-            <p><strong>ID Commande :</strong> ${newOrder._id}</p>
             <p>Merci de vérifier et traiter la commande.</p>
             <hr/>
             <p>Société FBM</p>
           `,
-        }).catch(error => {
-          console.error(`Failed to send email to ${email}:`, error);
-          return null;
-        })
-      );
-
-      await Promise.all(emailPromises);
-      console.log(`Sent ${employeeEmails.length} email notifications`);
+        });
+      }
 
       return res.status(201).json(newOrder);
     } catch (err) {
@@ -136,3 +117,4 @@ export default async function handler(req, res) {
 
   return res.status(405).json({ error: "Méthode non autorisée" });
 }
+
