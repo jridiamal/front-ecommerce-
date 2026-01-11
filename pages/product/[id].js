@@ -198,26 +198,26 @@ export default function ProductPage({ product, recommended }) {
     setQty(1);
   }, [product._id]);
 
+  // CORRECTION: Trouver la variante correspondant à l'image actuelle
   const currentVariant = selectedColor 
     ? colorVariants.find(v => v.color === selectedColor) 
-    : null;
+    : colorVariants.find(v => v.imageUrl === currentImage);
 
-  // CORRECTION: Logique de rupture améliorée
   const isProductOutOfStock = product.stock === 0;
-  const isSelectedColorOutOfStock = selectedColor && currentVariant?.outOfStock;
-  const isRupture = isProductOutOfStock || isSelectedColorOutOfStock;
+  const isCurrentVariantOutOfStock = currentVariant?.outOfStock;
+  const isRupture = isProductOutOfStock || isCurrentVariantOutOfStock;
   
-  // CORRECTION: Logique pour ajouter au panier
+  // CORRECTION IMPORTANTE: Logique pour ajouter au panier
   const canAddToCart = !isProductOutOfStock && 
-    (!selectedColor || (currentVariant && !currentVariant.outOfStock));
+    (!currentVariant || (currentVariant && !currentVariant.outOfStock));
 
-  // CORRECTION: Fonction handleAddToCart complète
+  // CORRECTION: Fonction handleAddToCart améliorée
   function handleAddToCart() {
     if (!canAddToCart) {
-      if (isProductOutOfStock) {
+      if (isCurrentVariantOutOfStock) {
+        toast.error(`La couleur ${currentVariant?.color} est épuisée`);
+      } else if (isProductOutOfStock) {
         toast.error("Ce produit est épuisé");
-      } else if (isSelectedColorOutOfStock) {
-        toast.error(`La couleur ${selectedColor} est épuisée`);
       }
       return;
     }
@@ -249,6 +249,26 @@ export default function ProductPage({ product, recommended }) {
     toast.success(message);
   }
 
+  // CORRECTION: Fonction pour gérer le clic sur une miniature
+  const handleThumbClick = (img) => {
+    // Trouver la variante correspondant à cette image
+    const variantForImage = colorVariants.find(v => v.imageUrl === img);
+    
+    if (variantForImage) {
+      // Si l'image est liée à une variante de couleur
+      if (variantForImage.outOfStock) {
+        toast.error(`La couleur ${variantForImage.color} est épuisée`);
+        return;
+      }
+      setSelectedColor(variantForImage.color);
+      setCurrentImage(img);
+    } else {
+      // Si l'image n'est pas liée à une couleur
+      setSelectedColor(null);
+      setCurrentImage(img);
+    }
+  };
+
   return (
     <Page>
       <Header />
@@ -260,26 +280,27 @@ export default function ProductPage({ product, recommended }) {
               <MainImg src={currentImage} alt={product.title} />
             </ImgWrapper>
             <Thumbs>
-              {product.images.map((img, i) => (
-                <img 
-                  key={i} 
-                  src={img} 
-                  onClick={() => {
-                    setCurrentImage(img);
-                    // Si l'utilisateur clique sur une vignette, vérifier si elle correspond à une variante de couleur
-                    if (selectedColor) {
-                      const variantForThisImage = colorVariants.find(v => v.imageUrl === img);
-                      if (!variantForThisImage || variantForThisImage.color !== selectedColor) {
-                        setSelectedColor(null);
-                      }
-                    }
-                  }} 
-                  alt={`Vue ${i + 1} de ${product.title}`}
-                  style={{
-                    border: currentImage === img ? `2px solid ${accent}` : '2px solid transparent'
-                  }}
-                />
-              ))}
+              {product.images.map((img, i) => {
+                // CORRECTION: Trouver si cette image est liée à une couleur épuisée
+                const variantForImage = colorVariants.find(v => v.imageUrl === img);
+                const isImageOutOfStock = variantForImage?.outOfStock;
+                
+                return (
+                  <img 
+                    key={i} 
+                    src={img} 
+                    onClick={() => handleThumbClick(img)}
+                    alt={`Vue ${i + 1} de ${product.title}`}
+                    style={{
+                      border: currentImage === img ? `2px solid ${accent}` : '2px solid transparent',
+                      opacity: isImageOutOfStock ? 0.5 : 1,
+                      cursor: isImageOutOfStock ? 'not-allowed' : 'pointer',
+                      position: 'relative'
+                    }}
+                    title={isImageOutOfStock ? `Couleur ${variantForImage.color} épuisée` : ''}
+                  />
+                );
+              })}
             </Thumbs>
           </Box>
 
@@ -298,7 +319,7 @@ export default function ProductPage({ product, recommended }) {
                     <ColorCircle
                       key={i}
                       color={v.color}
-                      active={selectedColor === v.color}
+                      active={selectedColor === v.color || currentVariant?.color === v.color}
                       isOutOfStock={v.outOfStock}
                       onClick={() => {
                         if (v.outOfStock) {
@@ -314,9 +335,17 @@ export default function ProductPage({ product, recommended }) {
                     />
                   ))}
                 </ColorWrapper>
-                {selectedColor && (
+                {currentVariant && (
                   <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
-                    Couleur sélectionnée: <strong>{selectedColor}</strong>
+                    {currentVariant.outOfStock ? (
+                      <span style={{ color: 'red' }}>
+                        ⚠️ La couleur <strong>{currentVariant.color}</strong> est épuisée
+                      </span>
+                    ) : (
+                      <span>
+                        Couleur: <strong>{currentVariant.color}</strong>
+                      </span>
+                    )}
                   </p>
                 )}
               </>

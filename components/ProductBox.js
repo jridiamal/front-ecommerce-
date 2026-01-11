@@ -174,14 +174,18 @@ export default function ProductBox({ _id, title, price, images = [], properties,
   const [currentImage, setCurrentImage] = useState(images[0]);
   const [hovered, setHovered] = useState(false);
 
-  const currentVariant = colorVariants.find(v => v.color === selectedColor);
+  // CORRECTION: Trouver la variante correspondant à l'image actuelle
+  const currentVariant = selectedColor 
+    ? colorVariants.find(v => v.color === selectedColor) 
+    : colorVariants.find(v => v.imageUrl === currentImage);
+
   const isProductOutOfStock = outOfStock;
-  const isSelectedColorOutOfStock = selectedColor && currentVariant?.outOfStock;
+  const isSelectedColorOutOfStock = currentVariant?.outOfStock;
   const isRupture = isProductOutOfStock || isSelectedColorOutOfStock;
   
-  // CORRECTION: Logique pour ajouter au panier
+  // CORRECTION: Logique améliorée pour ajouter au panier
   const canAddToCart = !isProductOutOfStock && 
-    (!selectedColor || (currentVariant && !currentVariant.outOfStock));
+    (!currentVariant || (currentVariant && !currentVariant.outOfStock));
   
   const [isWished, setIsWished] = useState(wished);
 
@@ -191,18 +195,18 @@ export default function ProductBox({ _id, title, price, images = [], properties,
 
   useEffect(() => {
     let interval;
-    if (hovered && !selectedColor && images.length > 1) {
+    if (hovered && !selectedColor && !currentVariant && images.length > 1) {
       interval = setInterval(() => {
         setCurrentImage(prev => {
           const idx = images.indexOf(prev);
           return images[(idx + 1) % images.length];
         });
       }, 1000);
-    } else if (!hovered && !selectedColor) {
+    } else if (!hovered && !selectedColor && !currentVariant) {
       setCurrentImage(images[0]);
     }
     return () => clearInterval(interval);
-  }, [hovered, selectedColor, images]);
+  }, [hovered, selectedColor, currentVariant, images]);
 
   async function toggleWishlist(e) {
     e.preventDefault();
@@ -236,8 +240,14 @@ export default function ProductBox({ _id, title, price, images = [], properties,
 
   function handleAddToCart(e) {
     e.preventDefault();
+    
+    // CORRECTION: Vérifier si l'image actuelle est liée à une couleur épuisée
     if (!canAddToCart) {
-      toast.error("Produit épuisé");
+      if (currentVariant?.outOfStock) {
+        toast.error(`La couleur ${currentVariant.color} est épuisée`);
+      } else {
+        toast.error("Produit épuisé");
+      }
       return;
     }
 
@@ -245,7 +255,7 @@ export default function ProductBox({ _id, title, price, images = [], properties,
       triggerFlyAnimation(imageRef.current, imageRef.current.getBoundingClientRect());
     }
 
-    // CORRECTION: Ajout de toutes les informations nécessaires
+    // CORRECTION: Ajouter la couleur même si elle n'est pas sélectionnée mais liée à l'image
     addProduct({
       _id,
       title,
@@ -303,12 +313,12 @@ export default function ProductBox({ _id, title, price, images = [], properties,
               <ColorCircle
                 key={i}
                 color={v.color}
-                active={selectedColor === v.color}
+                active={selectedColor === v.color || currentVariant?.color === v.color}
                 isOutOfStock={v.outOfStock}
                 onClick={(e) => {
                   e.preventDefault();
                   if (v.outOfStock) {
-                    toast.error("Cette couleur est épuisée");
+                    toast.error(`La couleur ${v.color} est épuisée`);
                     return;
                   }
                   setSelectedColor(v.color);
