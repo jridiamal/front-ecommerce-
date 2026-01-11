@@ -1,6 +1,6 @@
 import { mongooseConnect } from "@/lib/mongoose";
-import  { Order } from "@/models/Order";
-import { UserRequest } from "@/models/UserRequest";
+import Order from "@/models/Order";
+import UserRequest from "@/models/UserRequest";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
 import { sendEmail } from "@/lib/mailer";
