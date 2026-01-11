@@ -1,4 +1,3 @@
-// components/ProductBox.tsx
 "use client";
 import styled, { keyframes } from "styled-components";
 import Link from "next/link";
@@ -174,18 +173,19 @@ export default function ProductBox({ _id, title, price, images = [], properties,
   const [currentImage, setCurrentImage] = useState(images[0]);
   const [hovered, setHovered] = useState(false);
 
-  // CORRECTION: Trouver la variante correspondant à l'image actuelle
   const currentVariant = selectedColor 
     ? colorVariants.find(v => v.color === selectedColor) 
     : colorVariants.find(v => v.imageUrl === currentImage);
 
   const isProductOutOfStock = outOfStock;
-  const isSelectedColorOutOfStock = currentVariant?.outOfStock;
-  const isRupture = isProductOutOfStock || isSelectedColorOutOfStock;
+  const isCurrentVariantOutOfStock = currentVariant?.outOfStock;
+  const isRupture = isProductOutOfStock || 
+    (selectedColor && isCurrentVariantOutOfStock) ||
+    (!selectedColor && hasColors && isCurrentVariantOutOfStock);
   
-  // CORRECTION: Logique améliorée pour ajouter au panier
   const canAddToCart = !isProductOutOfStock && 
-    (!currentVariant || (currentVariant && !currentVariant.outOfStock));
+    (!selectedColor || !isCurrentVariantOutOfStock) &&
+    (!currentVariant || !currentVariant.outOfStock);
   
   const [isWished, setIsWished] = useState(wished);
 
@@ -241,7 +241,11 @@ export default function ProductBox({ _id, title, price, images = [], properties,
   function handleAddToCart(e) {
     e.preventDefault();
     
-    // CORRECTION: Vérifier si l'image actuelle est liée à une couleur épuisée
+    if (isProductOutOfStock) {
+      toast.error("Ce produit est épuisé");
+      return;
+    }
+    
     if (!canAddToCart) {
       if (currentVariant?.outOfStock) {
         toast.error(`La couleur ${currentVariant.color} est épuisée`);
@@ -255,7 +259,6 @@ export default function ProductBox({ _id, title, price, images = [], properties,
       triggerFlyAnimation(imageRef.current, imageRef.current.getBoundingClientRect());
     }
 
-    // CORRECTION: Ajouter la couleur même si elle n'est pas sélectionnée mais liée à l'image
     addProduct({
       _id,
       title,

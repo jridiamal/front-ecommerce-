@@ -1,4 +1,3 @@
-// pages/product/[id].jsx
 "use client";
 import Header from "@/components/Header";
 import Center from "@/components/Center";
@@ -178,8 +177,6 @@ const RecoCards = styled.div`
   margin-top: 25px;
 `;
 
-/* ================= COMPONENT ================= */
-
 export default function ProductPage({ product, recommended }) {
   const { addProduct } = useContext(CartContext);
   const { triggerFlyAnimation } = useContext(AnimationContext);
@@ -198,39 +195,38 @@ export default function ProductPage({ product, recommended }) {
     setQty(1);
   }, [product._id]);
 
-  // CORRECTION: Trouver la variante correspondant à l'image actuelle
   const currentVariant = selectedColor 
     ? colorVariants.find(v => v.color === selectedColor) 
     : colorVariants.find(v => v.imageUrl === currentImage);
 
-  const isProductOutOfStock = product.stock === 0;
+  const isProductOutOfStock = product.stock === 0 || product.outOfStock;
   const isCurrentVariantOutOfStock = currentVariant?.outOfStock;
-  const isRupture = isProductOutOfStock || isCurrentVariantOutOfStock;
+  const isRupture = isProductOutOfStock || 
+    (selectedColor && isCurrentVariantOutOfStock) ||
+    (!selectedColor && hasColors && isCurrentVariantOutOfStock);
   
-  // CORRECTION IMPORTANTE: Logique pour ajouter au panier
   const canAddToCart = !isProductOutOfStock && 
-    (!currentVariant || (currentVariant && !currentVariant.outOfStock));
+    (!selectedColor || !isCurrentVariantOutOfStock) &&
+    (!currentVariant || !currentVariant.outOfStock);
 
-  // CORRECTION: Fonction handleAddToCart améliorée
   function handleAddToCart() {
     if (!canAddToCart) {
-      if (isCurrentVariantOutOfStock) {
-        toast.error(`La couleur ${currentVariant?.color} est épuisée`);
-      } else if (isProductOutOfStock) {
+      if (isProductOutOfStock) {
         toast.error("Ce produit est épuisé");
+      } else if (isCurrentVariantOutOfStock) {
+        toast.error(`La couleur ${currentVariant?.color} est épuisée`);
+      } else if (currentVariant?.outOfStock) {
+        toast.error(`La couleur ${currentVariant.color} est épuisée`);
       }
       return;
     }
 
-    // Obtenir l'image correcte pour le panier
     const imageToUse = currentVariant?.imageUrl || currentImage;
 
-    // Déclencher l'animation de vol si l'image est disponible
     if (imgRef.current) {
       triggerFlyAnimation(imgRef.current, imgRef.current.getBoundingClientRect());
     }
 
-    // Ajouter le produit au panier pour chaque quantité
     for (let i = 0; i < qty; i++) {
       addProduct({
         _id: product._id,
@@ -242,20 +238,16 @@ export default function ProductPage({ product, recommended }) {
       });
     }
     
-    // Message de confirmation
     const message = qty > 1 
       ? `${qty} produits ajoutés au panier` 
       : "Produit ajouté au panier";
     toast.success(message);
   }
 
-  // CORRECTION: Fonction pour gérer le clic sur une miniature
   const handleThumbClick = (img) => {
-    // Trouver la variante correspondant à cette image
     const variantForImage = colorVariants.find(v => v.imageUrl === img);
     
     if (variantForImage) {
-      // Si l'image est liée à une variante de couleur
       if (variantForImage.outOfStock) {
         toast.error(`La couleur ${variantForImage.color} est épuisée`);
         return;
@@ -263,7 +255,6 @@ export default function ProductPage({ product, recommended }) {
       setSelectedColor(variantForImage.color);
       setCurrentImage(img);
     } else {
-      // Si l'image n'est pas liée à une couleur
       setSelectedColor(null);
       setCurrentImage(img);
     }
@@ -281,7 +272,6 @@ export default function ProductPage({ product, recommended }) {
             </ImgWrapper>
             <Thumbs>
               {product.images.map((img, i) => {
-                // CORRECTION: Trouver si cette image est liée à une couleur épuisée
                 const variantForImage = colorVariants.find(v => v.imageUrl === img);
                 const isImageOutOfStock = variantForImage?.outOfStock;
                 
@@ -373,8 +363,24 @@ export default function ProductPage({ product, recommended }) {
               whileHover={canAddToCart ? { scale: 1.02 } : {}}
               whileTap={canAddToCart ? { scale: 0.98 } : {}}
             >
-              {isRupture ? "Produit épuisé" : `Ajouter au panier (${qty})`}
+              {isProductOutOfStock ? "Produit épuisé" : 
+               isRupture ? "Couleur épuisée" : 
+               `Ajouter au panier (${qty})`}
             </AddBtn>
+
+            {isProductOutOfStock && (
+              <p style={{ 
+                marginTop: '15px', 
+                padding: '10px', 
+                backgroundColor: '#fff3f3', 
+                borderRadius: '8px',
+                color: '#d32f2f',
+                fontSize: '0.9rem',
+                textAlign: 'center'
+              }}>
+                ⚠️ Ce produit est actuellement en rupture de stock.
+              </p>
+            )}
           </Box>
         </Grid>
 
