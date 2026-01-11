@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 const PageWrapper = styled.div`
   background-color: #f5f5f7;
   min-height: 100vh;
-  margin-top: 10px; 
+  margin-top: 40px; 
   padding: 20px 0;
 `;
 

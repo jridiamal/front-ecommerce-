@@ -10,7 +10,7 @@ import Link from "next/link";
 const Container = styled.div`
   min-height: calc(100vh - 80px);
   padding: 10px 5px;
-  margin-top: 80px;
+  margin-top: 40px;
   background-color: #f8fafc;
   @media (min-width: 768px) { padding: 30px; }
 `;

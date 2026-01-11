@@ -7,7 +7,9 @@ import ProductsGrid from "@/components/ProductsGrid";
 import Title from "@/components/Title";
 
 const PageContent = styled.div`
-  margin-top: 10px; 
+  background-color: #f5f5f7;
+
+  margin-top: 40px; 
   padding: 20px 0;
 `;
 
