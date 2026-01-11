@@ -8,11 +8,11 @@ import { useState, useContext } from "react";
 import { CartContext } from "@/components/CartContext";
 import { motion, AnimatePresence } from "framer-motion";
 
-// --- STYLES ---
 const PageWrapper = styled.div`
   background-color: #f5f5f7;
   min-height: 100vh;
-  padding-bottom: 60px;
+  margin-top: 10px; 
+  padding: 20px 0;
 `;
 
 const CategorySection = styled.section`
@@ -153,7 +153,6 @@ const ColorCircle = styled.button`
   overflow: hidden;
   &:hover { transform: scale(1.1); }
 
-  /* Le cercle barré pour la rupture */
   ${props => props.isOutOfStock && `
     &::after {
       content: "";
@@ -302,7 +301,6 @@ function ProductItem({ product }) {
   );
 }
 
-// --- PAGE PRINCIPALE ---
 export default function CategoriesPage({ categoriesWithProducts = [] }) {
   return (
     <PageWrapper>
