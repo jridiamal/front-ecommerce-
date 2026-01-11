@@ -8,7 +8,6 @@ import { sendEmail } from "@/lib/mailer";
 export default async function handler(req, res) {
   await mongooseConnect();
 
-  // 🔐 Auth
   const session = await getServerSession(req, res, authOptions);
   if (!session || !session.user?.email) {
     console.log("❌ NO SESSION");
@@ -18,7 +17,6 @@ export default async function handler(req, res) {
   const userEmail = session.user.email;
   console.log("✅ SESSION USER:", userEmail);
 
-  // ================= POST =================
   if (req.method === "POST") {
     try {
       const { name, phone, streetAddress, country, line_items, total } = req.body;
