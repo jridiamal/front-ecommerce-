@@ -22,7 +22,9 @@ const ColumnsWrapper = styled.div`
   grid-template-columns: 1fr;
   gap: 20px;
   margin: 20px 0;
-  margin-top: 30px;
+  margin-top: 40px;
+  background-color: #f5f5f7;
+
   @media(min-width: 768px){
     grid-template-columns: 1.5fr 0.8fr;
     gap: 30px;
