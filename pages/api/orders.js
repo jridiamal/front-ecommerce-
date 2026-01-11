@@ -1,9 +1,8 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import { Order } from "@/models/Order";
-import Employee from "@/models/UserRequest";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
-import { sendEmail } from "@/lib/mailer"; // Keep this import
+import { sendEmail } from "@/lib/mailer";
 
 export default async function handler(req, res) {
   await mongooseConnect();
@@ -34,7 +33,9 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Le panier est vide" });
       }
 
-      // إنشاء طلب جديد
+      console.log("📦 Création de commande pour:", name);
+
+      // Créer la commande
       const newOrder = await Order.create({
         userId: session.user.id,
         name,
@@ -47,30 +48,41 @@ export default async function handler(req, res) {
         status: "En attente",
       });
 
-      // ✅ نبعث إيميل لكل الموظفين المعتمدين
-      const approvedEmployees = await Employee.find({ status: "approved" });
-      const employeeEmails = approvedEmployees.map(emp => emp.email);
+      console.log("✅ Commande créée:", newOrder._id);
 
-      for (const email of employeeEmails) {
-        // FIX: Change sendOrderEmail to sendEmail
+      // Envoyer un email à l'admin (societefbm484@gmail.com)
+      try {
         await sendEmail({
-          to: email,
+          to: "societefbm484@gmail.com", // Email de l'admin
           subject: "Nouvelle commande client",
           html: `
-            <h2>Bonjour 👋</h2>
-            <p>Un client a passé une nouvelle commande.</p>
-            <p><strong>Client :</strong> ${name} (${userEmail})</p>
+            <h2>🚨 NOUVELLE COMMANDE</h2>
+            <p><strong>Client :</strong> ${name}</p>
+            <p><strong>Email :</strong> ${userEmail}</p>
+            <p><strong>Téléphone :</strong> ${phone}</p>
+            <p><strong>Adresse :</strong> ${streetAddress}, ${country}</p>
             <p><strong>Total :</strong> ${total} DT</p>
-            <p>Merci de vérifier et traiter la commande.</p>
+            <p><strong>ID Commande :</strong> ${newOrder._id}</p>
+            <hr/>
+            <p><strong>Articles :</strong></p>
+            <ul>
+              ${line_items.map(item => `
+                <li>${item.quantity}x ${item.price_data?.product_data?.name || 'Produit'}: ${item.price_data?.unit_amount/100 || 0} DT</li>
+              `).join('')}
+            </ul>
             <hr/>
             <p>Société FBM</p>
           `,
         });
+        console.log("📧 Email envoyé à l'admin");
+      } catch (emailError) {
+        console.error("⚠️ Erreur d'email:", emailError.message);
+        // Continuer même si l'email échoue
       }
 
       return res.status(201).json(newOrder);
     } catch (err) {
-      console.error("Erreur POST orders:", err);
+      console.error("❌ Erreur POST orders:", err);
       return res.status(500).json({ error: "Erreur serveur lors du POST" });
     }
   }
@@ -117,4 +129,3 @@ export default async function handler(req, res) {
 
   return res.status(405).json({ error: "Méthode non autorisée" });
 }
-
