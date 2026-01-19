@@ -2,7 +2,7 @@ import styled, { keyframes } from "styled-components";
 import Center from "@/components/Center";
 import ProductsGrid from "@/components/ProductsGrid";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 
 // Animation du badge
@@ -13,70 +13,123 @@ const pulse = keyframes`
 `;
 
 const Section = styled.section`
-  padding: 60px 0;
+  padding: 40px 0;
   background: #fdfdfd;
+
+  @media screen and (min-width: 768px) {
+    padding: 60px 0;
+  }
+
+  @media screen and (min-width: 1200px) {
+    padding: 80px 0;
+  }
 `;
 
 const HeaderRow = styled.div`
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: 40px;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 30px;
   border-bottom: 1px solid #eee;
   padding-bottom: 20px;
-  @media screen and (max-width: 768px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 20px;
+
+  @media screen and (min-width: 768px) {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 40px;
   }
 `;
 
 const TitleGroup = styled.div`
   display: flex;
-  align-items: center; gap: 10px;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 `;
 
-
-
 const Badge = styled.span`
-  background: #e63946; color: white; font-size: 11px; padding: 3px 8px;
-  border-radius: 12px; font-weight: bold; animation: ${pulse} 2s infinite;
+  background: #e63946;
+  color: white;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-weight: bold;
+  animation: ${pulse} 2s infinite;
+  
+  @media screen and (min-width: 375px) {
+    font-size: 11px;
+  }
+  
+  @media screen and (min-width: 768px) {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
 `;
 
 const FilterChip = styled.button`
   background: ${props => props.active ? '#1f387e' : 'white'};
   color: ${props => props.active ? 'white' : '#666'};
   border: 1px solid ${props => props.active ? '#1f387e' : '#ddd'};
-  padding: 8px 20px; border-radius: 25px; cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 25px;
+  cursor: pointer;
   transition: all 0.3s ease;
-  &:hover { border-color: #1f387e; transform: translateY(-1px); }
+  white-space: nowrap;
+  font-size: 14px;
+  
+  &:hover { 
+    border-color: #1f387e; 
+    transform: translateY(-1px); 
+  }
+  
+  @media screen and (min-width: 768px) {
+    padding: 8px 20px;
+    font-size: 15px;
+  }
 `;
 
 const FilterWrapper = styled.div`
   display: flex;
-  gap: 9px;
+  gap: 8px;
   overflow-x: auto;
-  width: calc(100% + 40px); 
+  padding: 10px 0 5px 0;
+  margin: 0 -5px;
+  scrollbar-width: none;
   
-  margin: 0 -20px; 
-  padding: 5px 20px 15px 20px;
-  scroll-snap-type: x mandatory; 
-  
-  & > button {
-    scroll-snap-align: start;
-    flex-shrink: 0; 
+  &::-webkit-scrollbar { 
+    display: none; 
   }
-
-  &::-webkit-scrollbar { display: none; }
+  
+  /* Touch-friendly scrolling */
+  -webkit-overflow-scrolling: touch;
+  
+  @media screen and (min-width: 768px) {
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    overflow-x: visible;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
 `;
 
 const Title = styled.h2`
-  font-size: 1.5rem; /* Réduit pour mobile */
+  font-size: 1.4rem;
   margin: 0;
   font-weight: 800;
   color: #121212;
+  line-height: 1.2;
+
+  @media screen and (min-width: 375px) {
+    font-size: 1.5rem;
+  }
 
   @media screen and (min-width: 768px) {
+    font-size: 1.8rem;
+  }
+
+  @media screen and (min-width: 1024px) {
     font-size: 2rem;
   }
 `;
@@ -85,19 +138,28 @@ const StyledButton = styled.button`
   background: #3d47ddff;
   color: white;
   border: none;
-  padding: 14px 30px; /* Plus petit sur mobile */
+  padding: 12px 24px;
   border-radius: 50px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 12px;
   transition: all 0.4s;
   box-shadow: 0 4px 15px rgba(0, 47, 202, 0.4);
-  width: fit-content;
+  width: 100%;
+  justify-content: center;
+  font-size: 15px;
+
+  @media screen and (min-width: 375px) {
+    width: fit-content;
+    padding: 14px 28px;
+  }
 
   @media screen and (min-width: 768px) {
     padding: 16px 45px;
+    font-size: 16px;
+    gap: 15px;
   }
 
   &:hover { 
@@ -105,13 +167,35 @@ const StyledButton = styled.button`
     transform: translateY(-3px); 
     svg { transform: translateX(8px); }
   }
-  svg { transition: transform 0.3s ease; }
+  
+  svg { 
+    transition: transform 0.3s ease;
+    width: 18px;
+    height: 18px;
+    
+    @media screen and (min-width: 768px) {
+      width: 20px;
+      height: 20px;
+    }
+  }
+`;
+
+const ButtonWrapper = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+  width: 100%;
+  
+  @media screen and (min-width: 768px) {
+    margin-top: 40px;
+  }
 `;
 
 export default function NewProducts({ products }) {
   const [categories, setCategories] = useState([]);
   const [activeFilter, setActiveFilter] = useState("all");
   const [displayProducts, setDisplayProducts] = useState(products);
+  const filterWrapperRef = useRef(null);
 
   useEffect(() => {
     axios.get('/api/categories').then(res => setCategories(res.data));
@@ -135,8 +219,11 @@ export default function NewProducts({ products }) {
             <Badge>New</Badge>
           </TitleGroup>
           
-          <FilterWrapper>
-            <FilterChip active={activeFilter === "all"} onClick={() => setActiveFilter("all")}>
+          <FilterWrapper ref={filterWrapperRef}>
+            <FilterChip 
+              active={activeFilter === "all"} 
+              onClick={() => setActiveFilter("all")}
+            >
               Tous
             </FilterChip>
             {categories.map(cat => (
@@ -144,7 +231,6 @@ export default function NewProducts({ products }) {
                 key={cat._id} 
                 active={activeFilter === cat._id} 
                 onClick={() => setActiveFilter(cat._id)}
-                style={{whiteSpace:'nowrap'}} // Empêche le texte de se couper
               >
                 {cat.name}
               </FilterChip>
@@ -154,7 +240,7 @@ export default function NewProducts({ products }) {
 
         <ProductsGrid products={displayProducts} />
 
-        <div style={{display:'flex', flexDirection:'column', alignItems:'center', marginTop:'40px'}}>
+        <ButtonWrapper>
           <Link href="/products" passHref legacyBehavior>
             <StyledButton>
               Voir toute la librairie
@@ -163,7 +249,7 @@ export default function NewProducts({ products }) {
               </svg>
             </StyledButton>
           </Link>
-        </div>
+        </ButtonWrapper>
       </Center>
     </Section>
   );
