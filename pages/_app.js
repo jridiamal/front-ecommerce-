@@ -30,9 +30,7 @@ export default function App({ Component, pageProps }) {
       <GlobalStyles />
       <CartContextProvider>
         <AnimationContextProvider> 
-          <Layout>
             <Component {...pageProps} />
-          </Layout>
           <FlyAnimation /> 
         </AnimationContextProvider>
       </CartContextProvider>
