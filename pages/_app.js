@@ -15,7 +15,13 @@ const GlobalStyles = createGlobalStyle`
   input, button, select {
     font-family: inherit;
   }
+    body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
 `;
+
 
 export default function App({ Component, pageProps }) {
   return (
