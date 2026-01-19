@@ -5,6 +5,7 @@ import { AnimationContextProvider } from "@/components/AnimationContext";
 import FlyAnimation from "@/components/FlyAnimation"; 
 
 const GlobalStyles = createGlobalStyle`
+  
   html, body, #__next {
     height: 100%;
     margin: 0;
@@ -24,16 +25,17 @@ const GlobalStyles = createGlobalStyle`
   }
 `;
 
+
 export default function App({ Component, pageProps }) {
-  return (
-    <SessionProvider session={pageProps.session}>
-      <GlobalStyles />
-      <CartContextProvider>
-        <AnimationContextProvider> 
-            <Component {...pageProps} />
-          <FlyAnimation /> 
-        </AnimationContextProvider>
-      </CartContextProvider>
-    </SessionProvider>
-  );
+  return (
+    <SessionProvider session={pageProps.session}>
+      <GlobalStyles />
+      <CartContextProvider>
+          <AnimationContextProvider> 
+              <Component {...pageProps} />
+              <FlyAnimation /> 
+          </AnimationContextProvider>
+      </CartContextProvider>
+    </SessionProvider>
+  );
 }
