@@ -3,14 +3,11 @@ import styled from "styled-components";
 const FooterContainer = styled.footer`
   background: #7f7bd1;
   background: radial-gradient(circle, rgba(127, 123, 209, 1) 0%, rgba(245, 240, 240, 1) 100%);
-  
   width: 100%;
   padding: 60px 20px 40px;
   font-family: 'Inter', sans-serif;
-  
-  
-  margin-top: 0; 
   border-top: 1px solid rgba(15, 23, 42, 0.05);
+  flex-shrink: 0; /* Prevents footer from shrinking */
 
   @media screen and (min-width: 768px) {
     padding: 80px 40px 40px;
@@ -22,7 +19,7 @@ const FooterGrid = styled.div`
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1fr;
-  gap: 30px;  /* moins gap sur mobile */
+  gap: 30px;
 
   @media (min-width: 768px) {
     grid-template-columns: 2fr 1fr 1fr;
@@ -116,9 +113,9 @@ export default function Footer() {
             Votre partenaire de confiance pour les fournitures scolaires et le matériel de bureau en Tunisie.
           </p>
           <SocialLinks>
-            <a href="#">Facebook</a>
-            <a href="#">Instagram</a>
-            <a href="#">LinkedIn</a>
+            <a href="#" aria-label="Facebook">Facebook</a>
+            <a href="#" aria-label="Instagram">Instagram</a>
+            <a href="#" aria-label="LinkedIn">LinkedIn</a>
           </SocialLinks>
         </BrandColumn>
 
