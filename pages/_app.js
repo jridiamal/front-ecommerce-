@@ -5,11 +5,18 @@ import { AnimationContextProvider } from "@/components/AnimationContext";
 import FlyAnimation from "@/components/FlyAnimation"; 
 
 const GlobalStyles = createGlobalStyle`
-  
-  html, body {
+  html, body, #__next {
+    height: 100%;
+    margin: 0;
+    padding: 0;
     max-width: 100vw;
     overflow-x: hidden; 
-    font-size: 16px;    
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
   }
 
   input, button, select {
@@ -18,15 +25,17 @@ const GlobalStyles = createGlobalStyle`
 `;
 
 export default function App({ Component, pageProps }) {
-  return (
-    <SessionProvider session={pageProps.session}>
-      <GlobalStyles />
-      <CartContextProvider>
-          <AnimationContextProvider> 
-              <Component {...pageProps} />
-              <FlyAnimation /> 
-          </AnimationContextProvider>
-      </CartContextProvider>
-    </SessionProvider>
-  );
+  return (
+    <SessionProvider session={pageProps.session}>
+      <GlobalStyles />
+      <CartContextProvider>
+        <AnimationContextProvider> 
+          <Layout>
+            <Component {...pageProps} />
+          </Layout>
+          <FlyAnimation /> 
+        </AnimationContextProvider>
+      </CartContextProvider>
+    </SessionProvider>
+  );
 }
