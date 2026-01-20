@@ -7,7 +7,7 @@ const FooterContainer = styled.footer`
   padding: 60px 20px 40px;
   font-family: 'Inter', sans-serif;
   border-top: 1px solid rgba(15, 23, 42, 0.05);
-  flex-shrink: 0; /* Prevents footer from shrinking */
+  margin-top: auto; /* THIS IS THE KEY FIX */
 
   @media screen and (min-width: 768px) {
     padding: 80px 40px 40px;
