@@ -1,9 +1,9 @@
-// /api/checkout.ts
+// pages/api/checkout.js
 import { mongooseConnect } from "@/lib/mongoose";
 import { Product } from "@/models/Product";
 import { Order } from "@/models/Order";
-import clientPromise from "@/lib/mongodb";
 import { sendEmail } from "@/lib/mailer";
+import clientPromise from "@/lib/mongodb";
 
 export default async function handler(req, res) {
   await mongooseConnect();
@@ -19,7 +19,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Panier vide" });
     }
 
-    // 🔹 Récupérer les produits depuis la DB
     const productIds = cartProducts.map(p => p._id);
     const productsFromDb = await Product.find({ _id: { $in: productIds } });
 
@@ -37,8 +36,8 @@ export default async function handler(req, res) {
 
       return {
         productId: product._id.toString(),
-        productTitle: product.title,          // snapshot nom produit
-        reference: product.reference || "N/A",// snapshot reference
+        productTitle: product.title,
+        reference: product.reference || "N/A",
         color: colorVariant?.color || p.color || "default",
         colorId: colorVariant ? colorVariant._id.toString() : null,
         quantity,
@@ -48,12 +47,12 @@ export default async function handler(req, res) {
     }).filter(Boolean);
 
     if (line_items.length === 0) {
-      return res.status(400).json({ error: "Aucun produit disponible pour cette commande" });
+      return res.status(400).json({ error: "Aucun produit disponible" });
     }
 
     const total = line_items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-    // 🔹 Créer la commande
+    // Créer la commande
     const order = await Order.create({
       userId,
       name,
@@ -67,51 +66,53 @@ export default async function handler(req, res) {
       status: "En attente",
     });
 
-    // 🔹 Envoyer email à l'admin
-    await sendEmail({
-      to: "societefbm484@gmail.com",
-      subject: "🛒 Nouvelle commande client",
-      html: `
-        <h2>Nouvelle commande de ${name}</h2>
-        <p>Total: ${total} DT</p>
-        <p>ID Commande: ${order._id}</p>
-        <ul>
-          ${line_items.map(i => `<li>${i.quantity}x ${i.productTitle} - ${i.price} DT</li>`).join("")}
-        </ul>
-      `,
-    });
+    console.log("✅ Commande créée:", order._id);
 
-    // 🔹 Récupérer tous les employés approved depuis MongoDB
-    const client = await clientPromise;
-    const db = client.db("company_db");
-    const employeesCol = db.collection("employees");
+    // RÉCUPÉRER LES EMPLOYÉS DEPUIS MONGODB
+    try {
+      const client = await clientPromise;
+      const db = client.db("company_db");
+      const employeesCol = db.collection("employees");
 
-    const approvedEmployees = await employeesCol.find({ status: "approved" }).toArray();
+      const approvedEmployees = await employeesCol.find({ 
+        status: "approved" 
+      }).toArray();
 
-    // 🔹 Envoyer email à chaque employé
-    for (const emp of approvedEmployees) {
-      await sendEmail({
-        to: emp.email,
-        subject: `📦 Nouvelle commande client - ${name}`,
-        html: `
-          <h3>Nouvelle commande à traiter</h3>
-          <p><b>Client:</b> ${name}</p>
-          <p><b>Téléphone:</b> ${phone}</p>
-          <p><b>Total:</b> ${total} DT</p>
-          <ul>
-            ${line_items.map(i => `<li>${i.quantity}x ${i.productTitle} - ${i.price} DT</li>`).join("")}
-          </ul>
-          <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/orders">
-            Voir la commande
-          </a>
-        `,
-      });
+      console.log(`👥 ${approvedEmployees.length} employé(s) trouvé(s)`);
+
+      // ENVOYER À TOUS LES EMPLOYÉS
+      for (const emp of approvedEmployees) {
+        try {
+          await sendEmail({
+            to: emp.email,
+            subject: `🚨 طلب جديد من ${name}`,
+            html: `
+              <div dir="rtl" style="font-family: Arial; padding: 20px;">
+                <h2 style="color: red;">🚨 عندي طلب جديد للعملاء</h2>
+                <p><strong>العميل:</strong> ${name}</p>
+                <p><strong>الهاتف:</strong> ${phone}</p>
+                <p><strong>المجموع:</strong> ${total} د.ت</p>
+                <p><strong>رقم الطلب:</strong> ${order._id.toString().slice(-8)}</p>
+                <a href="${process.env.NEXTAUTH_URL}/admin/orders">
+                  🔍 عرض الطلب
+                </a>
+              </div>
+            `
+          });
+          console.log(`📧 Email envoyé à ${emp.email}`);
+        } catch (err) {
+          console.log(`❌ Erreur pour ${emp.email}:`, err.message);
+        }
+      }
+
+    } catch (dbErr) {
+      console.log("❌ Erreur MongoDB:", dbErr.message);
     }
 
     return res.status(201).json(order);
 
   } catch (err) {
     console.error("CHECKOUT ERROR:", err);
-    return res.status(500).json({ error: "Erreur serveur lors du checkout." });
+    return res.status(500).json({ error: "Erreur serveur" });
   }
 }
