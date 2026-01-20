@@ -1,8 +1,8 @@
-"use client"
+"use client";
 import Link from "next/link";
 import styled from "styled-components";
 import Center from "@/components/Center";
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState, useEffect, useRef } from "react";
 import { CartContext } from "@/components/CartContext";
 import { AnimationContext } from "@/components/AnimationContext"; 
 import { useRouter } from "next/router";
@@ -59,9 +59,9 @@ const LogoText = styled.div`
 const DesktopNav = styled.nav`
   display: none;
   gap: 32px;
+  align-items: center;
   @media screen and (min-width: 768px) {
     display: flex;
-    align-items: center;
   }
 `;
 
@@ -72,6 +72,8 @@ const NavLink = styled(Link)`
   font-size: 0.95rem;
   position: relative;
   transition: color 0.3s ease;
+  display: flex;
+  align-items: center;
   &::after {
     content: '';
     position: absolute;
@@ -129,7 +131,12 @@ const MobileNavItem = styled(Link)`
   svg { width: 24px; height: 24px; }
 `;
 
-const IconWrapper = styled.div` position: relative; `;
+const IconWrapper = styled.div` 
+  position: relative; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
 
 const MobileBadge = styled.div`
   position: absolute;
@@ -159,6 +166,19 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const router = useRouter();
 
+  // Use separate refs for desktop and mobile
+  const desktopCartRef = useRef(null);
+  const mobileCartRef = useRef(null);
+
+  // Sync refs with AnimationContext
+  useEffect(() => {
+    if (cartRef) {
+      // Set to desktop ref by default, but AnimationContext will update
+      // based on which is visible
+      cartRef.current = desktopCartRef.current || mobileCartRef.current;
+    }
+  }, [cartRef]);
+
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 30);
     window.addEventListener("scroll", handleScroll);
@@ -184,8 +204,8 @@ export default function Header() {
               <NavLink href="/products" $active={active("/products")}>Produits</NavLink>
               <NavLink href="/categories" $active={active("/categories")}>Catégories</NavLink>
               <NavLink href="/account" $active={active("/account")}>Compte</NavLink>
-              <NavLink href="/cart" $active={active("/cart")} ref={cartRef}>
-                Panier 
+              <NavLink href="/cart" $active={active("/cart")}>
+                <span ref={desktopCartRef}>Panier</span>
                 {cartProducts?.length > 0 && <CartBadge>{cartProducts.length}</CartBadge>}
               </NavLink>
             </DesktopNav>
@@ -211,7 +231,7 @@ export default function Header() {
           <span>Compte</span>
         </MobileNavItem>
         <MobileNavItem href="/cart" $active={active("/cart")}>
-          <IconWrapper ref={cartRef}>
+          <IconWrapper ref={mobileCartRef}>
             <CartIcon />
             {cartProducts?.length > 0 && <MobileBadge>{cartProducts.length}</MobileBadge>}
           </IconWrapper>

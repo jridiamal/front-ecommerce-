@@ -255,10 +255,22 @@ export default function ProductBox({ _id, title, price, images = [], properties,
       return;
     }
 
-    if (imageRef.current) {
-      triggerFlyAnimation(imageRef.current, imageRef.current.getBoundingClientRect());
+    // Get the image element and its position
+    const imgElement = imageRef.current;
+    if (imgElement) {
+      // Get the actual image dimensions and position
+      const rect = imgElement.getBoundingClientRect();
+      
+      // Trigger the animation
+      triggerFlyAnimation(imgElement, {
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+      });
     }
 
+    // Add to cart
     addProduct({
       _id,
       title,
@@ -300,6 +312,7 @@ export default function ProductBox({ _id, title, price, images = [], properties,
           <ActionButton 
             type="button" 
             onClick={handleAddToCart}
+            disabled={!canAddToCart}
             style={{ 
               opacity: canAddToCart ? 1 : 0.4, 
               cursor: canAddToCart ? "pointer" : "not-allowed" 
