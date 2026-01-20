@@ -7,29 +7,42 @@ export const CartContext = createContext({});
 export function CartContextProvider({ children }) {
   const { data: session } = useSession();
   const ls = typeof window !== "undefined" ? window.localStorage : null;
+
+  // clé panier spécifique à user ou guest
+  const cartKey = session?.user?.email
+    ? `cart_${session.user.email}`   // user connecté
+    : "cart_guest";                  // invité
+
   const [cartProducts, setCartProducts] = useState([]);
 
-  const cartKey = session?.user?.email ? `cart_${session.user.email}` : "cart_guest";
-
-  // Load cart from localStorage
+  // Charger panier depuis localStorage
   useEffect(() => {
-    if (ls && session?.user?.email) {
+    if (ls) {
       const savedCart = ls.getItem(cartKey);
       setCartProducts(savedCart ? JSON.parse(savedCart) : []);
-    } else {
-      setCartProducts([]);
     }
-  }, [session?.user?.email]);
+  }, [cartKey]);
 
-  // Save cart to localStorage
+  // Sauvegarder panier dans localStorage à chaque modification
   useEffect(() => {
-    if(ls && session?.user?.email) {
+    if (ls) {
       ls.setItem(cartKey, JSON.stringify(cartProducts));
     }
   }, [cartProducts, cartKey]);
 
+  /**
+   * item = {
+   *   _id: productId,
+   *   title,
+   *   price,
+   *   colorId,
+   *   color,
+   *   image,
+   *   outOfStock
+   * }
+   */
   function addProduct(item) {
-    if (item.outOfStock) return; // ⛔ sécurité
+    if (item.outOfStock) return; // sécurité
     setCartProducts(prev => [...prev, item]);
   }
 
@@ -47,15 +60,23 @@ export function CartContextProvider({ children }) {
     });
   }
 
-  function clearCart() {
+  // vider panier memory, mais garder localStorage pour persistance
+  function clearCartMemory() {
     setCartProducts([]);
-    if(ls && session?.user?.email) ls.removeItem(cartKey);
   }
 
+  // vider complètement panier (memory + localStorage)
+  function clearCartAll() {
+    setCartProducts([]);
+    if (ls) ls.removeItem(cartKey);
+  }
+
+  // total prix
   function getCartTotal() {
     return cartProducts.reduce((total, item) => total + (item.price || 0), 0);
   }
 
+  // nombre produits
   function getCartCount() {
     return cartProducts.length;
   }
@@ -66,7 +87,8 @@ export function CartContextProvider({ children }) {
         cartProducts,
         addProduct,
         removeProduct,
-        clearCart,
+        clearCartMemory, // clear memory seulement
+        clearCartAll,    // clear memory + LS
         getCartTotal,
         getCartCount,
       }}
