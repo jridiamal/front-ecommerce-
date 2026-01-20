@@ -1,3 +1,4 @@
+// components/FlyAnimation.js
 'use client'
 import React, { useContext } from 'react';
 import styled, { keyframes, css } from 'styled-components';
@@ -10,7 +11,7 @@ const flyToCart = (endX, endY) => keyframes`
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   }
   75% {
-    transform: translate(${endX}px, ${endY}px) scale(0.2);
+    transform: translate(${endX}px, ${endY}px) scale(0.3);
     opacity: 0.8;
   }
   100% {
@@ -27,7 +28,8 @@ const AnimatedImage = styled.img`
   height: ${props => props.$height}px;
   z-index: 9999;
   border-radius: 10px;
-  object-fit: contain; 
+  object-fit: contain;
+  pointer-events: none;
   
   ${props => props.$shouldAnimate && css`
     animation: ${flyToCart(

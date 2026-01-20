@@ -1,46 +1,57 @@
-// AnimationContext.js
-"use client";
-import React, { createContext, useRef, useState, useCallback, useMemo } from 'react';
+// components/AnimationContext.js
+"use client"
+import { createContext, useRef, useState } from "react";
 
-// ADD DEFAULT VALUES HERE
-export const AnimationContext = createContext({
-    cartRef: { current: null },
-    triggerFlyAnimation: () => {},
-    animationInfo: null
-});
+export const AnimationContext = createContext({});
 
 export function AnimationContextProvider({ children }) {
-    const cartRef = useRef(null);
-    const [animationInfo, setAnimationInfo] = useState(null);
+  const cartRefDesktop = useRef(null);
+  const cartRefMobile = useRef(null);
+  const [animationInfo, setAnimationInfo] = useState(null);
 
-    const triggerFlyAnimation = useCallback((imageElement, startRect) => {
-        // Safety check for SSR/Build
-        if (!cartRef.current || !imageElement) return;
-        
-        const cartRect = cartRef.current.getBoundingClientRect();
-        
-        setAnimationInfo({
-            imageSrc: imageElement.src,
-            startX: startRect.left,
-            startY: startRect.top,
-            endX: cartRect.left,
-            endY: cartRect.top,
-            width: startRect.width,
-            height: startRect.height,
-        });
-        
-        setTimeout(() => setAnimationInfo(null), 700); 
-    }, []);
+  const triggerAnimation = (imageSrc, startRect) => {
+    // Check if either cart ref exists and is visible
+    const isMobile = window.innerWidth < 768;
+    const cartRef = isMobile ? cartRefMobile : cartRefDesktop;
+    
+    if (cartRef.current) {
+      const cartRect = cartRef.current.getBoundingClientRect();
+      
+      // Calculate center position of cart icon
+      const endX = cartRect.left + cartRect.width / 2;
+      const endY = cartRect.top + cartRect.height / 2;
+      
+      // Calculate start position (center of clicked image)
+      const startX = startRect.left + startRect.width / 2;
+      const startY = startRect.top + startRect.height / 2;
 
-    const contextValue = useMemo(() => ({
-        cartRef,
-        triggerFlyAnimation,
+      setAnimationInfo({
+        imageSrc,
+        startX,
+        startY,
+        endX,
+        endY,
+        width: Math.min(startRect.width, 80), // Cap max width for animation
+        height: Math.min(startRect.height, 80), // Cap max height
+      });
+
+      // Clear animation after it completes
+      setTimeout(() => {
+        setAnimationInfo(null);
+      }, 700);
+    }
+  };
+
+  return (
+    <AnimationContext.Provider
+      value={{
         animationInfo,
-    }), [animationInfo, triggerFlyAnimation]);
-
-    return (
-        <AnimationContext.Provider value={contextValue}>
-            {children}
-        </AnimationContext.Provider>
-    );
+        triggerAnimation,
+        cartRefDesktop,
+        cartRefMobile,
+      }}
+    >
+      {children}
+    </AnimationContext.Provider>
+  );
 }

@@ -15,9 +15,7 @@ const GlobalStyles = createGlobalStyle`
   input, button, select {
     font-family: inherit;
   }
-    
 `;
-
 
 export default function App({ Component, pageProps }) {
   return (
