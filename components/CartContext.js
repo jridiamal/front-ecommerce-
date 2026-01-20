@@ -1,38 +1,35 @@
 // components/CartContext.js
 import { createContext, useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 
 export const CartContext = createContext({});
 
 export function CartContextProvider({ children }) {
+  const { data: session } = useSession();
   const ls = typeof window !== "undefined" ? window.localStorage : null;
   const [cartProducts, setCartProducts] = useState([]);
 
+  const cartKey = session?.user?.email ? `cart_${session.user.email}` : "cart_guest";
+
   // Load cart from localStorage
   useEffect(() => {
-    if (ls && ls.getItem("cart")) {
-      setCartProducts(JSON.parse(ls.getItem("cart")));
+    if (ls && session?.user?.email) {
+      const savedCart = ls.getItem(cartKey);
+      setCartProducts(savedCart ? JSON.parse(savedCart) : []);
+    } else {
+      setCartProducts([]);
     }
-  }, []);
+  }, [session?.user?.email]);
 
   // Save cart to localStorage
   useEffect(() => {
-    ls?.setItem("cart", JSON.stringify(cartProducts));
-  }, [cartProducts]);
+    if(ls && session?.user?.email) {
+      ls.setItem(cartKey, JSON.stringify(cartProducts));
+    }
+  }, [cartProducts, cartKey]);
 
-  /**
-   * item = {
-   *   _id: productId,
-   *   title,
-   *   price,
-   *   colorId,
-   *   color,
-   *   image,
-   *   outOfStock
-   * }
-   */
   function addProduct(item) {
     if (item.outOfStock) return; // ⛔ sécurité
-
     setCartProducts(prev => [...prev, item]);
   }
 
@@ -41,7 +38,6 @@ export function CartContextProvider({ children }) {
       const pos = prev.findIndex(
         p => p._id === item._id && p.colorId === item.colorId
       );
-
       if (pos !== -1) {
         const newCart = [...prev];
         newCart.splice(pos, 1);
@@ -53,15 +49,13 @@ export function CartContextProvider({ children }) {
 
   function clearCart() {
     setCartProducts([]);
-    ls?.removeItem("cart");
+    if(ls && session?.user?.email) ls.removeItem(cartKey);
   }
 
-  // Helper function to calculate total price
   function getCartTotal() {
     return cartProducts.reduce((total, item) => total + (item.price || 0), 0);
   }
 
-  // Helper function to get cart count
   function getCartCount() {
     return cartProducts.length;
   }
