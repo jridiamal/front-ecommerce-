@@ -1,4 +1,3 @@
-// /api/checkout.ts
 import { mongooseConnect } from "@/lib/mongoose";
 import { Product } from "@/models/Product";
 import { Order } from "@/models/Order";
@@ -6,54 +5,76 @@ import clientPromise from "@/lib/mongodb";
 import { sendEmail } from "@/lib/mailer";
 
 export default async function handler(req, res) {
-  await mongooseConnect();
-
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    const { name, email, phone, streetAddress, country, cartProducts, userId } = req.body;
+    await mongooseConnect();
 
-    if (!cartProducts || cartProducts.length === 0) {
+    const {
+      name,
+      email,
+      phone,
+      streetAddress,
+      country,
+      cartProducts,
+      paymentMethod,
+      userId,
+    } = req.body;
+
+    // 🔒 Validation أساسية
+    if (!name || !phone || !streetAddress) {
+      return res.status(400).json({ error: "Champs obligatoires manquants" });
+    }
+
+    if (!Array.isArray(cartProducts) || cartProducts.length === 0) {
       return res.status(400).json({ error: "Panier vide" });
     }
 
-    // 🔹 Récupérer les produits depuis la DB
+    // 🔹 IDs المنتجات
     const productIds = cartProducts.map(p => p._id);
     const productsFromDb = await Product.find({ _id: { $in: productIds } });
 
-    const line_items = cartProducts.map(p => {
-      const product = productsFromDb.find(pr => pr._id.toString() === p._id.toString());
+    // 🔹 بناء line_items (snapshot)
+    const line_items = cartProducts.map(item => {
+      const product = productsFromDb.find(
+        p => p._id.toString() === item._id.toString()
+      );
       if (!product) return null;
 
       let colorVariant = null;
-      if (product?.properties?.colorVariants?.length > 0 && p.colorId) {
-        colorVariant = product.properties.colorVariants.find(v => v._id.toString() === p.colorId) || null;
+      if (product?.properties?.colorVariants?.length && item.colorId) {
+        colorVariant = product.properties.colorVariants.find(
+          v => v._id.toString() === item.colorId
+        );
       }
 
-      const quantity = Number(p.quantity || 1);
+      const quantity = Number(item.quantity || 1);
       const price = Number(product.price || 0);
 
       return {
         productId: product._id.toString(),
-        productTitle: product.title,          // snapshot nom produit
-        reference: product.reference || "N/A",// snapshot reference
-        color: colorVariant?.color || p.color || "default",
+        productTitle: product.title,
+        reference: product.reference || "N/A",
+        color: colorVariant?.color || item.color || "default",
         colorId: colorVariant ? colorVariant._id.toString() : null,
         quantity,
         price,
-        image: colorVariant ? colorVariant.imageUrl : product.images?.[0] || "",
+        image: colorVariant?.imageUrl || product.images?.[0] || "",
       };
     }).filter(Boolean);
 
     if (line_items.length === 0) {
-      return res.status(400).json({ error: "Aucun produit disponible pour cette commande" });
+      return res.status(400).json({ error: "Produits invalides" });
     }
 
-    const total = line_items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const total = line_items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
 
-    // 🔹 Créer la commande
+    // 🔥 إنشاء commande (CRITICAL)
     const order = await Order.create({
       userId,
       name,
@@ -61,57 +82,74 @@ export default async function handler(req, res) {
       phone,
       streetAddress,
       country,
+      paymentMethod: paymentMethod || "Paiement à la livraison",
       line_items,
       total,
       paid: false,
       status: "En attente",
     });
 
-    // 🔹 Envoyer email à l'admin
-    await sendEmail({
+    console.log("✅ ORDER SAVED:", order._id);
+
+    // ================================
+    // 📧 EMAILS (NON-BLOCKING)
+    // ================================
+
+    // 🔹 Email admin
+    sendEmail({
       to: "societefbm484@gmail.com",
       subject: "🛒 Nouvelle commande client",
       html: `
-        <h2>Nouvelle commande de ${name}</h2>
-        <p>Total: ${total} DT</p>
-        <p>ID Commande: ${order._id}</p>
-        <ul>
-          ${line_items.map(i => `<li>${i.quantity}x ${i.productTitle} - ${i.price} DT</li>`).join("")}
-        </ul>
+        <h2>Nouvelle commande</h2>
+        <p><b>Client:</b> ${name}</p>
+        <p><b>Téléphone:</b> ${phone}</p>
+        <p><b>Total:</b> ${total} DT</p>
+        <p><b>ID:</b> ${order._id}</p>
       `,
     });
 
-    // 🔹 Récupérer tous les employés approved depuis MongoDB
-    const client = await clientPromise;
-    const db = client.db("company_db");
-    const employeesCol = db.collection("employees");
+    // 🔹 Emails employés approved
+    try {
+      const client = await clientPromise;
+      const db = client.db("company_db");
+      const employeesCol = db.collection("employees");
 
-    const approvedEmployees = await employeesCol.find({ status: "approved" }).toArray();
+      const employees = await employeesCol
+        .find({ status: "approved" })
+        .toArray();
 
-    // 🔹 Envoyer email à chaque employé
-    for (const emp of approvedEmployees) {
-      await sendEmail({
-        to: emp.email,
-        subject: `📦 Nouvelle commande client - ${name}`,
-        html: `
-          <h3>Nouvelle commande à traiter</h3>
-          <p><b>Client:</b> ${name}</p>
-          <p><b>Téléphone:</b> ${phone}</p>
-          <p><b>Total:</b> ${total} DT</p>
-          <ul>
-            ${line_items.map(i => `<li>${i.quantity}x ${i.productTitle} - ${i.price} DT</li>`).join("")}
-          </ul>
-          <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/orders">
-            Voir la commande
-          </a>
-        `,
-      });
+      for (const emp of employees) {
+        sendEmail({
+          to: emp.email,
+          subject: `📦 Nouvelle commande - ${name}`,
+          html: `
+            <h3>Nouvelle commande à traiter</h3>
+            <p><b>Client:</b> ${name}</p>
+            <p><b>Téléphone:</b> ${phone}</p>
+            <p><b>Total:</b> ${total} DT</p>
+            <a href="${
+              process.env.NEXTAUTH_URL || "http://localhost:3000"
+            }/orders">
+              Voir la commande
+            </a>
+          `,
+        });
+      }
+    } catch (empErr) {
+      console.error("⚠️ Employees email error:", empErr.message);
+      // ❌ ما نطيّحوش checkout
     }
 
-    return res.status(201).json(order);
+    // 🔥 RESPONSE FINAL (IMPORTANT)
+    return res.status(200).json({
+      success: true,
+      orderId: order._id,
+    });
 
   } catch (err) {
-    console.error("CHECKOUT ERROR:", err);
-    return res.status(500).json({ error: "Erreur serveur lors du checkout." });
+    console.error("❌ CHECKOUT ERROR:", err);
+    return res.status(500).json({
+      error: "Erreur serveur lors du checkout",
+    });
   }
 }
