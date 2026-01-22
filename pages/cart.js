@@ -22,7 +22,6 @@ const ColumnsWrapper = styled.div`
   margin: 20px 0;
   margin-top: 40px;
   background-color: #f5f5f7;
-
   @media(min-width: 768px){
     grid-template-columns: 1.5fr 0.8fr;
     gap: 30px;
@@ -273,7 +272,12 @@ const ToastBox = styled.div`
 export default function CartPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const { cartProducts, addProduct, removeProduct, clearCart } = useContext(CartContext);
+  const { 
+    cartProducts, 
+    addProduct, 
+    removeProduct, 
+    clearCartAll 
+  } = useContext(CartContext);
 
   const [products, setProducts] = useState([]);
   const [name, setName] = useState("");
@@ -310,7 +314,6 @@ export default function CartPage() {
     const id = cartItem._id;
     const color = cartItem.color || "default";
     const colorId = cartItem.colorId;
-
     const key = `${id}-${colorId || "default"}`;
 
     if (!acc[key]) {
@@ -336,23 +339,21 @@ export default function CartPage() {
   }
 
   async function goToPayment() {
-    // Vérification des champs obligatoires
     if(!name || name.trim().length < 3) {
-      return setToast({message: "Veuillez entrer un nom valide (min. 3 caractères).", type: "error"});
+      return setToast({message: "Veuillez entrer un nom valide.", type: "error"});
     }
     
     if(!phone || !/^(2|4|5|9)\d{7}$/.test(phone)) {
-      return setToast({message: "Veuillez entrer un numéro de téléphone tunisien valide.", type: "error"});
+      return setToast({message: "Numéro de téléphone invalide.", type: "error"});
     }
     
     if(!streetAddress || streetAddress.trim().length < 5) {
-      return setToast({message: "Veuillez entrer une adresse de livraison valide.", type: "error"});
+      return setToast({message: "Adresse de livraison invalide.", type: "error"});
     }
 
     try {
       setIsLoading(true);
       
-      // Préparer les données pour le checkout
       const checkoutCart = groupedItems.map(item => ({
         _id: item._id,
         colorId: item.colorId,
@@ -360,12 +361,6 @@ export default function CartPage() {
         quantity: item.quantity
       }));
 
-      console.log("Envoi de la commande...", {
-        name, email, phone, streetAddress,
-        cartProducts: checkoutCart
-      });
-
-      // Appel API
       const response = await axios.post("/api/checkout", {
         name: name.trim(),
         email: email.trim(),
@@ -377,24 +372,17 @@ export default function CartPage() {
         userId: session?.user?.id || null
       });
 
-      console.log("Réponse du serveur:", response.data);
-
-      // Vérifier la réponse
       if (response.data && response.data.success === true) {
         setToast({
-          message: `Commande confirmée ! Votre numéro de commande: ${response.data.orderId}`,
+          message: `Commande confirmée ! Numéro: ${response.data.orderId}`,
           type: "success"
         });
         
-        // Vider le panier
-        if (clearCart && typeof clearCart === 'function') {
-          clearCart();
-        }
+        clearCartAll();
         
-        // Rediriger après 3 secondes
         setTimeout(() => {
-          router.push(`/account`);
-        }, 3000);
+          router.push(`/commande/${response.data.orderId}`);
+        }, 2000);
       } else {
         setToast({
           message: response.data?.message || "Erreur lors de la commande.",
@@ -402,25 +390,13 @@ export default function CartPage() {
         });
       }
     } catch (err) {
-      console.error("Erreur détaillée de commande:", {
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status
-      });
+      console.error("Erreur commande:", err);
       
-      // Message d'erreur plus spécifique
       let errorMessage = "Erreur lors de la commande.";
-      
-      if (err.response) {
-        if (err.response.status === 400) {
-          errorMessage = err.response.data?.error || "Données invalides. Veuillez vérifier vos informations.";
-        } else if (err.response.status === 500) {
-          errorMessage = "Erreur serveur. Veuillez réessayer plus tard.";
-        } else {
-          errorMessage = err.response.data?.error || err.response.data?.message || errorMessage;
-        }
-      } else if (err.request) {
-        errorMessage = "Impossible de contacter le serveur. Vérifiez votre connexion internet.";
+      if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
       }
       
       setToast({message: errorMessage, type: "error"});
@@ -487,17 +463,11 @@ export default function CartPage() {
                         <td>
                           <MobileFlexRow>
                             <QuantityControls>
-                              <QuantityButton 
-                                onClick={() => removeProduct && removeProduct(item)}
-                                disabled={!removeProduct}
-                              >
+                              <QuantityButton onClick={() => removeProduct(item)}>
                                 -
                               </QuantityButton>
                               <QuantityLabel>{item.quantity}</QuantityLabel>
-                              <QuantityButton 
-                                onClick={() => addProduct && addProduct(item)}
-                                disabled={!addProduct}
-                              >
+                              <QuantityButton onClick={() => addProduct(item)}>
                                 +
                               </QuantityButton>
                             </QuantityControls>

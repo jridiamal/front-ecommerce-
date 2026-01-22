@@ -1,4 +1,3 @@
-// /pages/api/checkout.js
 import { mongooseConnect } from "@/lib/mongoose";
 import { Product } from "@/models/Product";
 import { Order } from "@/models/Order";
@@ -27,7 +26,6 @@ export default async function handler(req, res) {
       paymentMethod = "Paiement à la livraison"
     } = req.body;
 
-    // Validation des données requises
     if (!name || !email || !phone || !streetAddress) {
       return res.status(400).json({ 
         success: false, 
@@ -42,7 +40,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // 🔹 Récupérer les produits depuis la DB
     const productIds = cartProducts.map(p => p._id);
     const productsFromDb = await Product.find({ _id: { $in: productIds } });
 
@@ -78,17 +75,15 @@ export default async function handler(req, res) {
     if (line_items.length === 0) {
       return res.status(400).json({ 
         success: false, 
-        error: "Aucun produit disponible pour cette commande" 
+        error: "Aucun produit disponible" 
       });
     }
 
-    // Calcul du total
     const total = line_items.reduce(
       (sum, item) => sum + (item.price * item.quantity), 
       0
     );
 
-    // 🔹 Créer la commande
     const order = await Order.create({
       userId: userId || null,
       name,
@@ -104,7 +99,6 @@ export default async function handler(req, res) {
       createdAt: new Date(),
     });
 
-    // 🔹 Envoyer email à l'admin
     try {
       await sendEmail({
         to: "societefbm484@gmail.com",
@@ -127,18 +121,14 @@ export default async function handler(req, res) {
       });
     } catch (emailError) {
       console.error("Erreur email admin:", emailError);
-      // Continuer même si l'email échoue
     }
 
-    // 🔹 Récupérer tous les employés approved depuis MongoDB
     try {
       const client = await clientPromise;
       const db = client.db("company_db");
       const employeesCol = db.collection("employees");
-
       const approvedEmployees = await employeesCol.find({ status: "approved" }).toArray();
 
-      // 🔹 Envoyer email à chaque employé
       for (const emp of approvedEmployees) {
         try {
           await sendEmail({
@@ -173,7 +163,6 @@ export default async function handler(req, res) {
       console.error("Erreur récupération employés:", employeesError);
     }
 
-    // 🔹 Retourner une réponse JSON claire et propre
     return res.status(201).json({ 
       success: true, 
       message: "Commande créée avec succès",
@@ -187,8 +176,7 @@ export default async function handler(req, res) {
     
     return res.status(500).json({ 
       success: false, 
-      error: "Erreur serveur lors du checkout.",
-      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+      error: "Erreur serveur lors du checkout."
     });
   }
 }
