@@ -1,14 +1,11 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+// /pages/api/checkout.js
 import { mongooseConnect } from "@/lib/mongoose";
 import { Product } from "@/models/Product";
 import { Order } from "@/models/Order";
 import clientPromise from "@/lib/mongodb";
 import { sendEmail } from "@/lib/mailer";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export default async function handler(req, res) {
   await mongooseConnect();
 
   if (req.method !== "POST") {
@@ -46,10 +43,10 @@ export default async function handler(
     }
 
     // 🔹 Récupérer les produits depuis la DB
-    const productIds = cartProducts.map((p: any) => p._id);
+    const productIds = cartProducts.map(p => p._id);
     const productsFromDb = await Product.find({ _id: { $in: productIds } });
 
-    const line_items = cartProducts.map((p: any) => {
+    const line_items = cartProducts.map(p => {
       const product = productsFromDb.find(pr => pr._id.toString() === p._id.toString());
       if (!product) {
         console.error(`Produit non trouvé: ${p._id}`);
@@ -59,7 +56,7 @@ export default async function handler(
       let colorVariant = null;
       if (product?.properties?.colorVariants?.length > 0 && p.colorId) {
         colorVariant = product.properties.colorVariants.find(
-          (v: any) => v._id.toString() === p.colorId
+          v => v._id.toString() === p.colorId
         ) || null;
       }
 
@@ -87,7 +84,7 @@ export default async function handler(
 
     // Calcul du total
     const total = line_items.reduce(
-      (sum: number, item: any) => sum + (item.price * item.quantity), 
+      (sum, item) => sum + (item.price * item.quantity), 
       0
     );
 
@@ -121,7 +118,7 @@ export default async function handler(
           <p><strong>ID Commande:</strong> ${order._id}</p>
           <h3>Produits commandés:</h3>
           <ul>
-            ${line_items.map((i: any) => 
+            ${line_items.map(i => 
               `<li>${i.quantity}x ${i.productTitle} (${i.color}) - ${i.price} DT = ${i.quantity * i.price} DT</li>`
             ).join("")}
           </ul>
@@ -156,7 +153,7 @@ export default async function handler(
               <p><b>Total:</b> ${total} DT</p>
               <h4>Produits:</h4>
               <ul>
-                ${line_items.map((i: any) => 
+                ${line_items.map(i => 
                   `<li>${i.quantity}x ${i.productTitle} (${i.color}) - ${i.price} DT</li>`
                 ).join("")}
               </ul>
