@@ -393,7 +393,7 @@ export default function CartPage() {
         
         // Rediriger après 3 secondes
         setTimeout(() => {
-          router.push(`/commande/${response.data.orderId}`);
+          router.push(`/account`);
         }, 3000);
       } else {
         setToast({
