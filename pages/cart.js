@@ -269,6 +269,21 @@ const ToastBox = styled.div`
   }
 `;
 
+const SuccessMessage = styled.div`
+  text-align: center;
+  padding: 40px 20px;
+  color: ${TEXT_DARK};
+  h3 {
+    color: #10b981;
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+  }
+  p {
+    color: ${TEXT_MUTED};
+    margin-bottom: 10px;
+  }
+`;
+
 export default function CartPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -286,6 +301,8 @@ export default function CartPage() {
   const [streetAddress, setStreetAddress] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState(null);
+  const [orderSuccess, setOrderSuccess] = useState(false);
+  const [orderNumber, setOrderNumber] = useState("");
 
   useEffect(() => {
     if(status === "unauthenticated" && router.isReady) {
@@ -373,16 +390,17 @@ export default function CartPage() {
       });
 
       if (response.data && response.data.success === true) {
+        setOrderSuccess(true);
+        setOrderNumber(response.data.orderId);
+        clearCartAll();
         setToast({
           message: `Commande confirmée ! Numéro: ${response.data.orderId}`,
           type: "success"
         });
         
-        clearCartAll();
-        
-        setTimeout(() => {
-          router.push(`/commande/${response.data.orderId}`);
-        }, 2000);
+        setName("");
+        setPhone("");
+        setStreetAddress("");
       } else {
         setToast({
           message: response.data?.message || "Erreur lors de la commande.",
@@ -419,118 +437,145 @@ export default function CartPage() {
       <Header />
       <Center>
         <ColumnsWrapper>
-          <Box>
-            <Title>
-               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
-               Votre Panier
-            </Title>
-            {!cartProducts.length ? (
-              <div style={{color: TEXT_MUTED, textAlign: 'center', padding: '40px 0'}}>
-                Votre panier est vide
-              </div>
-            ) : (
-              <StyledTable>
-                <thead>
-                  <tr>
-                    <th>Produit</th>
-                    <th>Quantité</th>
-                    <th>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {groupedItems.map((item, idx) => {
-                    const product = products.find(p => p._id === item._id);
-                    const colorVariant = product?.properties?.colorVariants?.find(v => v.color === item.color);
-                    const displayImage = colorVariant ? colorVariant.imageUrl : product?.images?.[0];
-                    const price = product?.price || 0;
-                    const itemTotal = price * item.quantity;
-                    
-                    return (
-                      <tr key={idx}>
-                        <ProductInfoCell>
-                          <ProductImageBox>
-                            <img src={displayImage} alt={product?.title || "Produit"} />
-                          </ProductImageBox>
-                          <div>
-                            <div style={{fontSize: '0.9rem'}}>{product?.title}</div>
-                            {item.color && item.color !== 'default' && (
-                              <ColorIndicator color={item.color}>
-                                <div />{item.color}
-                              </ColorIndicator>
-                            )}
-                          </div>
-                        </ProductInfoCell>
-                        <td>
-                          <MobileFlexRow>
-                            <QuantityControls>
-                              <QuantityButton onClick={() => removeProduct(item)}>
-                                -
-                              </QuantityButton>
-                              <QuantityLabel>{item.quantity}</QuantityLabel>
-                              <QuantityButton onClick={() => addProduct(item)}>
-                                +
-                              </QuantityButton>
-                            </QuantityControls>
-                            <div style={{fontWeight: 700}}>
-                              {itemTotal.toLocaleString()} TND
-                            </div>
-                          </MobileFlexRow>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </StyledTable>
-            )}
-            {cartProducts.length > 0 && (
-              <TotalSummary>
-                <div className="grand-total">
-                  <span>Total</span>
-                  <span>{total.toLocaleString()} TND</span>
-                </div>
-              </TotalSummary>
-            )}
-          </Box>
-          {cartProducts.length > 0 && (
-            <Box>
-              <Title>
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="3" width="15" height="13"/><polyline points="16 8 20 8 23 11 23 16 16 16"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                Informations de livraison
-              </Title>
-              <StyledInput 
-                placeholder="Nom complet *" 
-                value={name} 
-                onChange={e => setName(e.target.value)}
-                required
-              />
-              <StyledInput 
-                placeholder="Email *" 
-                value={email} 
-                onChange={e => setEmail(e.target.value)}
-                required
-              />
-              <StyledInput 
-                placeholder="Téléphone * (ex: 25555666)" 
-                value={phone} 
-                onChange={e => setPhone(e.target.value)}
-                required
-              />
-              <StyledInput 
-                placeholder="Adresse exacte de livraison *" 
-                value={streetAddress} 
-                onChange={e => setStreetAddress(e.target.value)}
-                required
-              />
-              <PaymentButton 
-                disabled={isLoading || !name || !email || !phone || !streetAddress}
-                onClick={goToPayment}
-              >
-                {isLoading ? "Traitement en cours..." : "Confirmer la commande"}
-              </PaymentButton>
-              <p style={{fontSize: '0.8rem', color: TEXT_MUTED, marginTop: '10px', textAlign: 'center'}}>
-                * Champs obligatoires
-              </p>
+          {orderSuccess ? (
+            <Box style={{gridColumn: '1 / -1', textAlign: 'center'}}>
+              <SuccessMessage>
+                <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="#10b981" style={{marginBottom: '20px'}}>
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                <h3>Commande Confirmée !</h3>
+                <p>Votre commande a été passée avec succès.</p>
+                <p><strong>Numéro de commande:</strong> {orderNumber}</p>
+                <p>Nous vous contacterons bientôt pour la livraison.</p>
+                <p>Un email de confirmation a été envoyé à {email}</p>
+                <Button 
+                  onClick={() => {
+                    setOrderSuccess(false);
+                    setOrderNumber("");
+                  }}
+                  style={{marginTop: '20px', backgroundColor: ACCENT_COLOR}}
+                >
+                  Retourner au shopping
+                </Button>
+              </SuccessMessage>
             </Box>
+          ) : (
+            <>
+              <Box>
+                <Title>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+                  Votre Panier
+                </Title>
+                {!cartProducts.length ? (
+                  <div style={{color: TEXT_MUTED, textAlign: 'center', padding: '40px 0'}}>
+                    Votre panier est vide
+                  </div>
+                ) : (
+                  <>
+                    <StyledTable>
+                      <thead>
+                        <tr>
+                          <th>Produit</th>
+                          <th>Quantité</th>
+                          <th>Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {groupedItems.map((item, idx) => {
+                          const product = products.find(p => p._id === item._id);
+                          const colorVariant = product?.properties?.colorVariants?.find(v => v.color === item.color);
+                          const displayImage = colorVariant ? colorVariant.imageUrl : product?.images?.[0];
+                          const price = product?.price || 0;
+                          const itemTotal = price * item.quantity;
+                          
+                          return (
+                            <tr key={idx}>
+                              <ProductInfoCell>
+                                <ProductImageBox>
+                                  <img src={displayImage} alt={product?.title || "Produit"} />
+                                </ProductImageBox>
+                                <div>
+                                  <div style={{fontSize: '0.9rem'}}>{product?.title}</div>
+                                  {item.color && item.color !== 'default' && (
+                                    <ColorIndicator color={item.color}>
+                                      <div />{item.color}
+                                    </ColorIndicator>
+                                  )}
+                                </div>
+                              </ProductInfoCell>
+                              <td>
+                                <MobileFlexRow>
+                                  <QuantityControls>
+                                    <QuantityButton onClick={() => removeProduct(item)}>
+                                      -
+                                    </QuantityButton>
+                                    <QuantityLabel>{item.quantity}</QuantityLabel>
+                                    <QuantityButton onClick={() => addProduct(item)}>
+                                      +
+                                    </QuantityButton>
+                                  </QuantityControls>
+                                  <div style={{fontWeight: 700}}>
+                                    {itemTotal.toLocaleString()} TND
+                                  </div>
+                                </MobileFlexRow>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </StyledTable>
+                    <TotalSummary>
+                      <div className="grand-total">
+                        <span>Total</span>
+                        <span>{total.toLocaleString()} TND</span>
+                      </div>
+                    </TotalSummary>
+                  </>
+                )}
+              </Box>
+              
+              {cartProducts.length > 0 && (
+                <Box>
+                  <Title>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="3" width="15" height="13"/><polyline points="16 8 20 8 23 11 23 16 16 16"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                    Informations de livraison
+                  </Title>
+                  <StyledInput 
+                    placeholder="Nom complet *" 
+                    value={name} 
+                    onChange={e => setName(e.target.value)}
+                    required
+                  />
+                  <StyledInput 
+                    placeholder="Email *" 
+                    value={email} 
+                    onChange={e => setEmail(e.target.value)}
+                    required
+                  />
+                  <StyledInput 
+                    placeholder="Téléphone * (ex: 25555666)" 
+                    value={phone} 
+                    onChange={e => setPhone(e.target.value)}
+                    required
+                  />
+                  <StyledInput 
+                    placeholder="Adresse exacte de livraison *" 
+                    value={streetAddress} 
+                    onChange={e => setStreetAddress(e.target.value)}
+                    required
+                  />
+                  <PaymentButton 
+                    disabled={isLoading || !name || !email || !phone || !streetAddress}
+                    onClick={goToPayment}
+                  >
+                    {isLoading ? "Traitement en cours..." : "Confirmer la commande"}
+                  </PaymentButton>
+                  <p style={{fontSize: '0.8rem', color: TEXT_MUTED, marginTop: '10px', textAlign: 'center'}}>
+                    * Champs obligatoires
+                  </p>
+                </Box>
+              )}
+            </>
           )}
         </ColumnsWrapper>
       </Center>
