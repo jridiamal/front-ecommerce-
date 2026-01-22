@@ -263,11 +263,14 @@ const PaymentButton = styled.button`
   }
 `;
 
-const fadeInOut = keyframes`
-  0% { opacity: 0; transform: translateY(20px); }
-  10% { opacity: 1; transform: translateY(0); }
-  90% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(20px); }
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
+
+const fadeOut = keyframes`
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(20px); }
 `;
 
 const ToastBox = styled.div`
@@ -282,10 +285,14 @@ const ToastBox = styled.div`
   z-index: 9999;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   border-left: 5px solid ${({ type }) => type === "success" ? "#10b981" : "#ef4444"};
-  animation: ${fadeInOut} 4s forwards;
   display: flex;
   align-items: center;
   gap: 12px;
+  animation: ${fadeIn} 0.3s ease-out;
+  
+  &.closing {
+    animation: ${fadeOut} 0.3s ease-out forwards;
+  }
   
   .toast-icon {
     font-size: 20px;
@@ -357,6 +364,72 @@ const LoadingSpinner = styled.div`
   animation: spin 1s linear infinite;
 `;
 
+const SuccessMessage = styled.div`
+  text-align: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 20px;
+  margin-top: 20px;
+  
+  .success-icon {
+    font-size: 64px;
+    color: #10b981;
+    margin-bottom: 20px;
+  }
+  
+  .success-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: ${TEXT_DARK};
+    margin-bottom: 10px;
+  }
+  
+  .success-text {
+    color: ${TEXT_MUTED};
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+  
+  .success-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .action-button {
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+    
+    &.primary {
+      background: ${ACCENT_COLOR};
+      color: white;
+      border: none;
+      
+      &:hover {
+        background: #1d4ed8;
+        transform: translateY(-2px);
+      }
+    }
+    
+    &.secondary {
+      background: white;
+      color: ${TEXT_DARK};
+      border: 2px solid #e2e8f0;
+      
+      &:hover {
+        border-color: ${ACCENT_COLOR};
+        background: #f8fafc;
+      }
+    }
+  }
+`;
+
 export default function CartPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -370,6 +443,8 @@ export default function CartPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState(null);
   const [validationErrors, setValidationErrors] = useState({});
+  const [orderSuccess, setOrderSuccess] = useState(false);
+  const [orderId, setOrderId] = useState(null);
 
   useEffect(() => {
     if (status === "unauthenticated" && router.isReady) {
@@ -397,15 +472,29 @@ export default function CartPage() {
         })
         .catch(err => {
           console.error("Erreur chargement produits:", err);
-          setToast({
-            message: "Erreur lors du chargement des produits",
-            type: "error"
-          });
+          showToast("Erreur lors du chargement des produits", "error");
         });
     } else {
       setProducts([]);
     }
   }, [cartProducts]);
+
+  const showToast = (message, type = "success", duration = 4000) => {
+    setToast({ message, type });
+    
+    setTimeout(() => {
+      setToast(prev => {
+        if (prev && prev.message === message) {
+          return { ...prev, closing: true };
+        }
+        return prev;
+      });
+      
+      setTimeout(() => {
+        setToast(null);
+      }, 300);
+    }, duration);
+  };
 
   // Grouper les produits du panier
   const groupedCart = cartProducts.reduce((acc, cartItem) => {
@@ -440,7 +529,7 @@ export default function CartPage() {
     subtotal += price;
   }
   
-  total = subtotal; // Pas de frais de livraison pour l'instant
+  total = subtotal;
 
   const validateForm = () => {
     const errors = {};
@@ -468,18 +557,12 @@ export default function CartPage() {
   async function goToPayment() {
     // Validation
     if (!validateForm()) {
-      setToast({
-        message: "Veuillez corriger les erreurs dans le formulaire",
-        type: "error"
-      });
+      showToast("Veuillez corriger les erreurs dans le formulaire", "error");
       return;
     }
 
     if (cartProducts.length === 0) {
-      setToast({
-        message: "Votre panier est vide",
-        type: "error"
-      });
+      showToast("Votre panier est vide", "error");
       return;
     }
 
@@ -517,18 +600,23 @@ export default function CartPage() {
       console.log("✅ Réponse API:", response.data);
 
       if (response.data.success) {
-        setToast({
-          message: "✅ Commande confirmée ! Redirection vers votre compte...",
-          type: "success"
-        });
+        // Sauvegarder l'ID de la commande
+        setOrderId(response.data.orderId);
+        
+        // Afficher le message de succès
+        setOrderSuccess(true);
+        
+        // Afficher le toast de succès
+        showToast("✅ Commande confirmée avec succès ! Vous recevrez un email de confirmation.", "success", 5000);
         
         // Vider le panier
         clearCart();
         
-        // Rediriger vers la page compte après 2 secondes
-        setTimeout(() => {
-          router.push("/account");
-        }, 2000);
+        // Réinitialiser le formulaire
+        setName("");
+        setPhone("");
+        setStreetAddress("");
+        
       } else {
         throw new Error(response.data.error || "Erreur inconnue lors de la commande");
       }
@@ -546,15 +634,19 @@ export default function CartPage() {
         message = err.message;
       }
       
-      setToast({
-        message,
-        type: "error"
-      });
+      showToast(message, "error");
     } finally {
       setIsLoading(false);
-      setTimeout(() => setToast(null), 4000);
     }
   }
+
+  const handleContinueShopping = () => {
+    router.push("/products");
+  };
+
+  const handleViewOrders = () => {
+    router.push("/account");
+  };
 
   if (status === "loading") {
     return (
@@ -570,239 +662,279 @@ export default function CartPage() {
   }
 
   if (!session) {
-    return null; // La redirection est gérée par useEffect
+    return null;
   }
 
   return (
     <>
       <Header />
       <Center>
-        <ColumnsWrapper>
+        {orderSuccess ? (
           <Box>
-            <Title>
-              <span style={{ fontSize: '24px' }}>🛒</span> Votre Panier
-            </Title>
-            
-            {cartProducts.length === 0 ? (
-              <EmptyCart>
-                <div className="empty-icon">🛒</div>
-                <div className="empty-text">Votre panier est vide</div>
-                <a href="/products" className="empty-button">
-                  Découvrir nos produits
-                </a>
-              </EmptyCart>
-            ) : (
-              <>
-                <StyledTable>
-                  <thead>
-                    <tr>
-                      <th>Produit</th>
-                      <th>Quantité</th>
-                      <th>Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {groupedItems.map((item, idx) => {
-                      const product = products.find(p => p._id === item._id);
-                      const colorVariant = product?.properties?.colorVariants?.find(v => 
-                        v.color === item.color || v._id.toString() === item.colorId
-                      );
-                      const displayImage = colorVariant?.imageUrl || product?.images?.[0] || "/default-product.jpg";
-                      
-                      return (
-                        <tr key={`${item._id}-${idx}`}>
-                          <ProductInfoCell>
-                            <ProductImageBox>
-                              <img src={displayImage} alt={product?.title || "Produit"} />
-                            </ProductImageBox>
-                            <div>
-                              <div style={{ fontSize: '0.95rem', fontWeight: 600 }}>
-                                {product?.title || "Produit"}
-                              </div>
-                              <div style={{ fontSize: '0.8rem', color: TEXT_MUTED, marginTop: '2px' }}>
-                                Réf: {product?.reference || "N/A"}
-                              </div>
-                              {item.color && item.color !== 'default' && (
-                                <ColorIndicator color={item.color}>
-                                  <div className="color-box" />
-                                  <span>{item.color}</span>
-                                </ColorIndicator>
-                              )}
-                            </div>
-                          </ProductInfoCell>
-                          <td>
-                            <MobileFlexRow>
-                              <QuantityControls>
-                                <QuantityButton 
-                                  onClick={() => removeProduct(item.itemData || item._id)}
-                                  disabled={isLoading}
-                                >
-                                  -
-                                </QuantityButton>
-                                <QuantityLabel>{item.quantity}</QuantityLabel>
-                                <QuantityButton 
-                                  onClick={() => addProduct(item.itemData || item._id)}
-                                  disabled={isLoading}
-                                >
-                                  +
-                                </QuantityButton>
-                              </QuantityControls>
-                              <div style={{ fontWeight: 700, fontSize: '1rem' }}>
-                                {((product?.price || 0) * item.quantity).toLocaleString()} TND
-                              </div>
-                            </MobileFlexRow>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </StyledTable>
-                
-                <TotalSummary>
-                  <div className="subtotal">
-                    <span>Sous-total</span>
-                    <span>{subtotal.toLocaleString()} TND</span>
-                  </div>
-                  <div className="grand-total">
-                    <span>Total à payer</span>
-                    <span>{total.toLocaleString()} TND</span>
-                  </div>
-                </TotalSummary>
-              </>
-            )}
+            <SuccessMessage>
+              <div className="success-icon">🎉</div>
+              <div className="success-title">Commande confirmée !</div>
+              <div className="success-text">
+                Votre commande a été enregistrée avec succès. 
+                <br />
+                Un email de confirmation vous a été envoyé à <strong>{email}</strong>
+                <br />
+                {orderId && (
+                  <span style={{ display: 'block', marginTop: '10px' }}>
+                    <strong>Numéro de commande:</strong> {orderId}
+                  </span>
+                )}
+              </div>
+              <div className="success-actions">
+                <button 
+                  className="action-button primary" 
+                  onClick={handleContinueShopping}
+                >
+                  Continuer mes achats
+                </button>
+                <button 
+                  className="action-button secondary" 
+                  onClick={handleViewOrders}
+                >
+                  Voir mes commandes
+                </button>
+              </div>
+            </SuccessMessage>
           </Box>
-          
-          {cartProducts.length > 0 && (
+        ) : (
+          <ColumnsWrapper>
             <Box>
               <Title>
-                <span style={{ fontSize: '24px' }}>📦</span> Informations de livraison
+                <span style={{ fontSize: '24px' }}>🛒</span> Votre Panier
               </Title>
               
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: TEXT_DARK }}>
-                  Nom complet *
-                </label>
-                <StyledInput 
-                  placeholder="Votre nom complet" 
-                  value={name} 
-                  onChange={e => {
-                    setName(e.target.value);
-                    if (validationErrors.name) {
-                      setValidationErrors(prev => ({ ...prev, name: undefined }));
-                    }
-                  }}
-                />
-                {validationErrors.name && (
-                  <ValidationError>
-                    ⚠️ {validationErrors.name}
-                  </ValidationError>
-                )}
-              </div>
-              
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: TEXT_DARK }}>
-                  Email *
-                </label>
-                <StyledInput 
-                  value={email} 
-                  onChange={e => {
-                    setEmail(e.target.value);
-                    if (validationErrors.email) {
-                      setValidationErrors(prev => ({ ...prev, email: undefined }));
-                    }
-                  }}
-                />
-                {validationErrors.email && (
-                  <ValidationError>
-                    ⚠️ {validationErrors.email}
-                  </ValidationError>
-                )}
-              </div>
-              
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: TEXT_DARK }}>
-                  Téléphone *
-                </label>
-                <StyledInput 
-                  placeholder="Ex: 20000000" 
-                  value={phone} 
-                  onChange={e => {
-                    setPhone(e.target.value.replace(/\D/g, ''));
-                    if (validationErrors.phone) {
-                      setValidationErrors(prev => ({ ...prev, phone: undefined }));
-                    }
-                  }}
-                  maxLength="8"
-                />
-                {validationErrors.phone && (
-                  <ValidationError>
-                    ⚠️ {validationErrors.phone}
-                  </ValidationError>
-                )}
-                <div style={{ fontSize: '0.8rem', color: TEXT_MUTED, marginTop: '4px' }}>
-                  Format: 8 chiffres (commence par 2, 4, 5 ou 9)
-                </div>
-              </div>
-              
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: TEXT_DARK }}>
-                  Adresse de livraison *
-                </label>
-                <StyledInput 
-                  placeholder="Rue, numéro, étage, ville..." 
-                  value={streetAddress} 
-                  onChange={e => {
-                    setStreetAddress(e.target.value);
-                    if (validationErrors.streetAddress) {
-                      setValidationErrors(prev => ({ ...prev, streetAddress: undefined }));
-                    }
-                  }}
-                />
-                {validationErrors.streetAddress && (
-                  <ValidationError>
-                    ⚠️ {validationErrors.streetAddress}
-                  </ValidationError>
-                )}
-              </div>
-              
-              <div style={{ marginTop: '30px', padding: '20px', background: '#f8fafc', borderRadius: '12px' }}>
-                <div style={{ fontWeight: 600, marginBottom: '10px', color: TEXT_DARK }}>
-                  ⚠️ Important
-                </div>
-                <div style={{ fontSize: '0.85rem', color: TEXT_MUTED, lineHeight: 1.5 }}>
-                  <p>• Paiement à la livraison uniquement</p>
-                  <p>• Livraison dans toute la Tunisie</p>
-                  <p>• Vous serez contacté pour confirmer la commande</p>
-                </div>
-              </div>
-              
-              <PaymentButton 
-                onClick={goToPayment} 
-                disabled={isLoading || cartProducts.length === 0}
-              >
-                {isLoading ? (
-                  <>
-                    <LoadingSpinner />
-                    Traitement en cours...
-                  </>
-                ) : (
-                  <>
-                    <span style={{ fontSize: '20px' }}>✅</span>
-                    Confirmer la commande
-                  </>
-                )}
-              </PaymentButton>
-              
-              <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '0.8rem', color: TEXT_MUTED }}>
-                En cliquant, vous acceptez nos conditions de vente
-              </div>
+              {cartProducts.length === 0 ? (
+                <EmptyCart>
+                  <div className="empty-icon">🛒</div>
+                  <div className="empty-text">Votre panier est vide</div>
+                  <button 
+                    className="empty-button" 
+                    onClick={handleContinueShopping}
+                  >
+                    Découvrir nos produits
+                  </button>
+                </EmptyCart>
+              ) : (
+                <>
+                  <StyledTable>
+                    <thead>
+                      <tr>
+                        <th>Produit</th>
+                        <th>Quantité</th>
+                        <th>Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {groupedItems.map((item, idx) => {
+                        const product = products.find(p => p._id === item._id);
+                        const colorVariant = product?.properties?.colorVariants?.find(v => 
+                          v.color === item.color || v._id.toString() === item.colorId
+                        );
+                        const displayImage = colorVariant?.imageUrl || product?.images?.[0] || "/default-product.jpg";
+                        
+                        return (
+                          <tr key={`${item._id}-${idx}`}>
+                            <ProductInfoCell>
+                              <ProductImageBox>
+                                <img src={displayImage} alt={product?.title || "Produit"} />
+                              </ProductImageBox>
+                              <div>
+                                <div style={{ fontSize: '0.95rem', fontWeight: 600 }}>
+                                  {product?.title || "Produit"}
+                                </div>
+                                <div style={{ fontSize: '0.8rem', color: TEXT_MUTED, marginTop: '2px' }}>
+                                  Réf: {product?.reference || "N/A"}
+                                </div>
+                                {item.color && item.color !== 'default' && (
+                                  <ColorIndicator color={item.color}>
+                                    <div className="color-box" />
+                                    <span>{item.color}</span>
+                                  </ColorIndicator>
+                                )}
+                              </div>
+                            </ProductInfoCell>
+                            <td>
+                              <MobileFlexRow>
+                                <QuantityControls>
+                                  <QuantityButton 
+                                    onClick={() => removeProduct(item.itemData || item._id)}
+                                    disabled={isLoading}
+                                  >
+                                    -
+                                  </QuantityButton>
+                                  <QuantityLabel>{item.quantity}</QuantityLabel>
+                                  <QuantityButton 
+                                    onClick={() => addProduct(item.itemData || item._id)}
+                                    disabled={isLoading}
+                                  >
+                                    +
+                                  </QuantityButton>
+                                </QuantityControls>
+                                <div style={{ fontWeight: 700, fontSize: '1rem' }}>
+                                  {((product?.price || 0) * item.quantity).toLocaleString()} TND
+                                </div>
+                              </MobileFlexRow>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </StyledTable>
+                  
+                  <TotalSummary>
+                    <div className="subtotal">
+                      <span>Sous-total</span>
+                      <span>{subtotal.toLocaleString()} TND</span>
+                    </div>
+                    <div className="grand-total">
+                      <span>Total à payer</span>
+                      <span>{total.toLocaleString()} TND</span>
+                    </div>
+                  </TotalSummary>
+                </>
+              )}
             </Box>
-          )}
-        </ColumnsWrapper>
+            
+            {cartProducts.length > 0 && (
+              <Box>
+                <Title>
+                  <span style={{ fontSize: '24px' }}>📦</span> Informations de livraison
+                </Title>
+                
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: TEXT_DARK }}>
+                    Nom complet *
+                  </label>
+                  <StyledInput 
+                    placeholder="Votre nom complet" 
+                    value={name} 
+                    onChange={e => {
+                      setName(e.target.value);
+                      if (validationErrors.name) {
+                        setValidationErrors(prev => ({ ...prev, name: undefined }));
+                      }
+                    }}
+                  />
+                  {validationErrors.name && (
+                    <ValidationError>
+                      ⚠️ {validationErrors.name}
+                    </ValidationError>
+                  )}
+                </div>
+                
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: TEXT_DARK }}>
+                    Email *
+                  </label>
+                  <StyledInput 
+                    value={email} 
+                    onChange={e => {
+                      setEmail(e.target.value);
+                      if (validationErrors.email) {
+                        setValidationErrors(prev => ({ ...prev, email: undefined }));
+                      }
+                    }}
+                  />
+                  {validationErrors.email && (
+                    <ValidationError>
+                      ⚠️ {validationErrors.email}
+                    </ValidationError>
+                  )}
+                </div>
+                
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: TEXT_DARK }}>
+                    Téléphone *
+                  </label>
+                  <StyledInput 
+                    placeholder="Ex: 20000000" 
+                    value={phone} 
+                    onChange={e => {
+                      setPhone(e.target.value.replace(/\D/g, ''));
+                      if (validationErrors.phone) {
+                        setValidationErrors(prev => ({ ...prev, phone: undefined }));
+                      }
+                    }}
+                    maxLength="8"
+                  />
+                  {validationErrors.phone && (
+                    <ValidationError>
+                      ⚠️ {validationErrors.phone}
+                    </ValidationError>
+                  )}
+                  <div style={{ fontSize: '0.8rem', color: TEXT_MUTED, marginTop: '4px' }}>
+                    Format: 8 chiffres (commence par 2, 4, 5 ou 9)
+                  </div>
+                </div>
+                
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: TEXT_DARK }}>
+                    Adresse de livraison *
+                  </label>
+                  <StyledInput 
+                    placeholder="Rue, numéro, étage, ville..." 
+                    value={streetAddress} 
+                    onChange={e => {
+                      setStreetAddress(e.target.value);
+                      if (validationErrors.streetAddress) {
+                        setValidationErrors(prev => ({ ...prev, streetAddress: undefined }));
+                      }
+                    }}
+                  />
+                  {validationErrors.streetAddress && (
+                    <ValidationError>
+                      ⚠️ {validationErrors.streetAddress}
+                    </ValidationError>
+                  )}
+                </div>
+                
+                <div style={{ marginTop: '30px', padding: '20px', background: '#f8fafc', borderRadius: '12px' }}>
+                  <div style={{ fontWeight: 600, marginBottom: '10px', color: TEXT_DARK }}>
+                    ⚠️ Important
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: TEXT_MUTED, lineHeight: 1.5 }}>
+                    <p>• Paiement à la livraison uniquement</p>
+                    <p>• Livraison dans toute la Tunisie</p>
+                    <p>• Vous serez contacté pour confirmer la commande</p>
+                  </div>
+                </div>
+                
+                <PaymentButton 
+                  onClick={goToPayment} 
+                  disabled={isLoading || cartProducts.length === 0}
+                >
+                  {isLoading ? (
+                    <>
+                      <LoadingSpinner />
+                      Traitement en cours...
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: '20px' }}>✅</span>
+                      Confirmer la commande
+                    </>
+                  )}
+                </PaymentButton>
+                
+                <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '0.8rem', color: TEXT_MUTED }}>
+                  En cliquant, vous acceptez nos conditions de vente
+                </div>
+              </Box>
+            )}
+          </ColumnsWrapper>
+        )}
       </Center>
       
       {toast && (
-        <ToastBox type={toast.type}>
+        <ToastBox 
+          type={toast.type} 
+          className={toast.closing ? 'closing' : ''}
+        >
           <span className="toast-icon">
             {toast.type === "success" ? "✅" : "❌"}
           </span>
