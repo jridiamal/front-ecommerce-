@@ -301,26 +301,25 @@ export default function CartPage() {
     } else setProducts([]);
   }, [cartProducts]);
 
- const groupedCart = cartProducts.reduce((acc, cartItem) => {
-  const id = cartItem._id;
-  const color = cartItem.color || "default";
-  const colorId = cartItem.colorId;        // ⭐
+  const groupedCart = cartProducts.reduce((acc, cartItem) => {
+    const id = cartItem._id;
+    const color = cartItem.color || "default";
+    const colorId = cartItem.colorId;
 
-  const key = `${id}-${colorId || "default"}`;
+    const key = `${id}-${colorId || "default"}`;
 
-  if (!acc[key]) {
-    acc[key] = {
-      _id: id,
-      color,
-      colorId,                             // ⭐
-      quantity: 0
-    };
-  }
+    if (!acc[key]) {
+      acc[key] = {
+        _id: id,
+        color,
+        colorId,
+        quantity: 0
+      };
+    }
 
-  acc[key].quantity += 1;
-  return acc;
-}, {});
-
+    acc[key].quantity += 1;
+    return acc;
+  }, {});
 
   const groupedItems = Object.values(groupedCart);
 
@@ -337,25 +336,51 @@ export default function CartPage() {
 
     try {
       setIsLoading(true);
-     const checkoutCart = groupedItems.map(item => ({
-  _id: item._id,
-  colorId: item.colorId,
-    color: item.color,      
-  quantity: item.quantity
-}));
+      const checkoutCart = groupedItems.map(item => ({
+        _id: item._id,
+        colorId: item.colorId,
+        color: item.color,      
+        quantity: item.quantity
+      }));
 
-
-      await axios.post("/api/checkout", {
-        name, email, phone, streetAddress,
+      const response = await axios.post("/api/checkout", {
+        name, 
+        email, 
+        phone, 
+        streetAddress,
         country: "Tunisie",
         cartProducts: checkoutCart,
-        paymentMethod: "Paiement à la livraison"
+        paymentMethod: "Paiement à la livraison",
+        userId: session?.user?.id || null
       });
 
-      setToast({message: "Commande confirmée !", type: "success"});
-      clearCart();
+      // Vérifier si la réponse est réussie
+      if (response.data && response.data.success) {
+        setToast({
+          message: `Commande confirmée ! Votre numéro de commande: ${response.data.orderId}`,
+          type: "success"
+        });
+        clearCart();
+        
+        // Rediriger vers une page de confirmation après 2 secondes
+        setTimeout(() => {
+          router.push(`/commande/${response.data.orderId}`);
+        }, 2000);
+      } else {
+        // Si le backend retourne success: false
+        setToast({
+          message: response.data?.message || "Erreur lors de la commande.",
+          type: "error"
+        });
+      }
     } catch (err) {
-      setToast({message: "Erreur lors de la commande.", type: "error"});
+      console.error("Erreur de commande:", err.response?.data || err.message);
+      
+      // Message d'erreur plus spécifique
+      const errorMessage = err.response?.data?.error || 
+                          err.response?.data?.message || 
+                          "Erreur lors de la commande.";
+      setToast({message: errorMessage, type: "error"});
     } finally {
       setIsLoading(false);
       setTimeout(() => setToast(null), 4000);
@@ -433,7 +458,7 @@ export default function CartPage() {
               <StyledInput placeholder="Téléphone" value={phone} onChange={e => setPhone(e.target.value)} />
               <StyledInput placeholder="Adresse exacte" value={streetAddress} onChange={e => setStreetAddress(e.target.value)} />
               <PaymentButton disabled={isLoading} onClick={goToPayment}>
-                {isLoading ? "En cours..." : "Confirmer"}
+                {isLoading ? "En cours..." : "Confirmer la commande"}
               </PaymentButton>
             </Box>
           )}
