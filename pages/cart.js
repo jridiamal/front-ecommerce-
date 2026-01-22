@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useContext } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import Center from "@/components/Center";
 import styled, { keyframes } from "styled-components";
@@ -53,14 +53,35 @@ const StyledTable = styled.table`
   border-collapse: separate;
   border-spacing: 0;
   thead { display: none; }
-  tr { display: flex; flex-direction: column; padding: 15px 0; border-bottom: 1px solid #f1f5f9; }
-  td { display: block; padding: 5px 0; }
+  tr { 
+    display: flex; 
+    flex-direction: column; 
+    padding: 15px 0; 
+    border-bottom: 1px solid #f1f5f9; 
+  }
+  td { 
+    display: block; 
+    padding: 5px 0; 
+  }
   @media(min-width: 768px) {
     display: table;
     thead { display: table-header-group; }
     tr { display: table-row; padding: 0; }
-    td { display: table-cell; padding: 20px 0; border-top: 1px solid #f1f5f9; }
-    th { display: table-cell; text-align: left; text-transform: uppercase; font-weight: 700; font-size: 0.75rem; color: ${TEXT_MUTED}; padding: 0 0 15px 0; }
+    td { 
+      display: table-cell; 
+      padding: 20px 0; 
+      border-top: 1px solid #f1f5f9; 
+      vertical-align: middle;
+    }
+    th { 
+      display: table-cell; 
+      text-align: left; 
+      text-transform: uppercase; 
+      font-weight: 700; 
+      font-size: 0.75rem; 
+      color: ${TEXT_MUTED}; 
+      padding: 0 0 15px 0; 
+    }
   }
 `;
 
@@ -78,7 +99,9 @@ const MobileFlexRow = styled.div`
   align-items: center;
   width: 100%;
   margin-top: 10px;
-  @media(min-width: 768px) { display: contents; }
+  @media(min-width: 768px) { 
+    display: contents; 
+  }
 `;
 
 const ColorIndicator = styled.div`
@@ -89,55 +112,155 @@ const ColorIndicator = styled.div`
   font-weight: 500;
   color: ${TEXT_MUTED};
   margin-top: 6px;
-  div {
-    width: 14px; height: 14px; border-radius: 4px;
+  .color-box {
+    width: 14px; 
+    height: 14px; 
+    border-radius: 4px;
     border: 1px solid rgba(0,0,0,0.1);
-    background-color: ${props => props.color};
+    background-color: ${props => props.color || '#ccc'};
   }
 `;
 
 const ProductImageBox = styled.div`
-  width: 70px; height: 70px; padding: 8px;
-  border: 1px solid #f1f5f9; border-radius: 12px;
-  display: flex; justify-content: center; align-items: center; background: #fff;
-  img { max-width: 100%; max-height: 100%; object-fit: contain; }
-  @media(min-width: 768px){ width: 90px; height: 90px; }
+  width: 70px; 
+  height: 70px; 
+  padding: 8px;
+  border: 1px solid #f1f5f9; 
+  border-radius: 12px;
+  display: flex; 
+  justify-content: center; 
+  align-items: center; 
+  background: #fff;
+  img { 
+    max-width: 100%; 
+    max-height: 100%; 
+    object-fit: contain; 
+  }
+  @media(min-width: 768px){ 
+    width: 90px; 
+    height: 90px; 
+  }
 `;
 
 const QuantityControls = styled.div`
-  display: flex; align-items: center;
-  background: #f1f5f9; padding: 4px; border-radius: 10px; width: fit-content;
+  display: flex; 
+  align-items: center;
+  background: #f1f5f9; 
+  padding: 4px; 
+  border-radius: 10px; 
+  width: fit-content;
 `;
 
 const QuantityButton = styled.button`
-  background-color: #fff; color: ${TEXT_DARK};
-  border: none; width: 32px; height: 32px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.2rem; border-radius: 8px; cursor: pointer;
+  background-color: #fff; 
+  color: ${TEXT_DARK};
+  border: none; 
+  width: 32px; 
+  height: 32px;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  font-size: 1.2rem; 
+  border-radius: 8px; 
+  cursor: pointer;
   transition: all 0.2s ease;
-  &:hover { background-color: ${ACCENT_COLOR}; color: white; }
+  &:hover { 
+    background-color: ${ACCENT_COLOR}; 
+    color: white; 
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    &:hover {
+      background-color: #fff;
+      color: ${TEXT_DARK};
+    }
+  }
 `;
 
 const QuantityLabel = styled.span`
-  padding: 0 12px; font-weight: 700; min-width: 30px; text-align: center; color: ${TEXT_DARK};
+  padding: 0 12px; 
+  font-weight: 700; 
+  min-width: 30px; 
+  text-align: center; 
+  color: ${TEXT_DARK};
 `;
 
 const StyledInput = styled(Input)`
-  margin-bottom: 12px; padding: 14px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 16px; width: 100%;
+  margin-bottom: 12px; 
+  padding: 14px; 
+  border-radius: 12px; 
+  border: 1px solid #e2e8f0; 
+  font-size: 16px; 
+  width: 100%;
   box-sizing: border-box;
-  &:focus { border-color: ${ACCENT_COLOR}; outline: none; }
+  &:focus { 
+    border-color: ${ACCENT_COLOR}; 
+    outline: none; 
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+  &:read-only {
+    background-color: #f8fafc;
+    color: #64748b;
+    cursor: not-allowed;
+  }
 `;
 
 const TotalSummary = styled.div`
-  border-top: 2px dashed #f1f5f9; margin-top: 25px; padding-top: 20px;
-  .grand-total { display: flex; justify-content: space-between; align-items: center; font-size: 1.2rem; font-weight: 800; color: ${TEXT_DARK}; span:last-child { color: ${ACCENT_COLOR}; } }
+  border-top: 2px dashed #f1f5f9; 
+  margin-top: 25px; 
+  padding-top: 20px;
+  .grand-total { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    font-size: 1.2rem; 
+    font-weight: 800; 
+    color: ${TEXT_DARK}; 
+    span:last-child { 
+      color: ${ACCENT_COLOR}; 
+      font-size: 1.4rem;
+    } 
+  }
+  .subtotal {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    color: ${TEXT_MUTED};
+    font-size: 0.95rem;
+  }
 `;
 
-const PaymentButton = styled(Button)`
-  background-color: ${ACCENT_COLOR}; color: white; width: 100%; padding: 16px;
-  font-size: 1rem; font-weight: 700; border-radius: 14px; margin-top: 20px; border: none; cursor: pointer;
+const PaymentButton = styled.button`
+  background-color: ${ACCENT_COLOR}; 
+  color: white; 
+  width: 100%; 
+  padding: 16px 24px;
+  font-size: 1rem; 
+  font-weight: 700; 
+  border-radius: 14px; 
+  margin-top: 20px; 
+  border: none; 
+  cursor: pointer;
   box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
-  &:disabled { background-color: #cbd5e1; cursor: not-allowed; }
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  
+  &:hover:not(:disabled) { 
+    background-color: #1d4ed8; 
+    transform: translateY(-2px);
+    box-shadow: 0 15px 20px -3px rgba(37, 99, 235, 0.4);
+  }
+  
+  &:disabled { 
+    background-color: #cbd5e1; 
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
 `;
 
 const fadeInOut = keyframes`
@@ -148,12 +271,90 @@ const fadeInOut = keyframes`
 `;
 
 const ToastBox = styled.div`
-  position: fixed; bottom: 20px; left: 20px; right: 20px; padding: 16px;
-  background: #fff; border-radius: 12px; font-weight: 600; z-index: 9999;
+  position: fixed; 
+  bottom: 20px; 
+  left: 20px; 
+  right: 20px; 
+  padding: 16px 20px;
+  background: #fff; 
+  border-radius: 12px; 
+  font-weight: 600; 
+  z-index: 9999;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   border-left: 5px solid ${({ type }) => type === "success" ? "#10b981" : "#ef4444"};
   animation: ${fadeInOut} 4s forwards;
-  @media(min-width: 768px){ width: fit-content; left: auto; right: 30px; min-width: 300px; }
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  
+  .toast-icon {
+    font-size: 20px;
+  }
+  
+  @media(min-width: 768px){ 
+    width: fit-content; 
+    left: auto; 
+    right: 30px; 
+    min-width: 300px; 
+    max-width: 400px;
+  }
+`;
+
+const EmptyCart = styled.div`
+  text-align: center;
+  padding: 60px 20px;
+  color: ${TEXT_MUTED};
+  
+  .empty-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.5;
+  }
+  
+  .empty-text {
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+  }
+  
+  .empty-button {
+    display: inline-block;
+    background: ${ACCENT_COLOR};
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    margin-top: 10px;
+    transition: background 0.2s;
+    
+    &:hover {
+      background: #1d4ed8;
+    }
+  }
+`;
+
+const ValidationError = styled.div`
+  color: #ef4444;
+  font-size: 0.85rem;
+  margin-top: 4px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+`;
+
+const LoadingSpinner = styled.div`
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 `;
 
 export default function CartPage() {
@@ -168,75 +369,209 @@ export default function CartPage() {
   const [streetAddress, setStreetAddress] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState(null);
+  const [validationErrors, setValidationErrors] = useState({});
 
   useEffect(() => {
-    if(status === "unauthenticated" && router.isReady) router.replace("/account");
+    if (status === "unauthenticated" && router.isReady) {
+      router.push("/account");
+    }
   }, [status, router]);
 
   useEffect(() => {
-    if(session?.user?.email) setEmail(session.user.email);
+    if (session?.user?.email) {
+      setEmail(session.user.email);
+    }
+    if (session?.user?.name) {
+      setName(session.user.name);
+    }
   }, [session]);
 
   useEffect(() => {
-    if(cartProducts.length > 0){
+    if (cartProducts.length > 0) {
       const ids = cartProducts.map(p => typeof p === 'string' ? p : p._id);
-      axios.post("/api/cart", { ids: [...new Set(ids)] })
-        .then(res => setProducts(res.data));
-    } else setProducts([]);
+      const uniqueIds = [...new Set(ids)];
+      
+      axios.post("/api/cart", { ids: uniqueIds })
+        .then(res => {
+          setProducts(res.data);
+        })
+        .catch(err => {
+          console.error("Erreur chargement produits:", err);
+          setToast({
+            message: "Erreur lors du chargement des produits",
+            type: "error"
+          });
+        });
+    } else {
+      setProducts([]);
+    }
   }, [cartProducts]);
 
+  // Grouper les produits du panier
   const groupedCart = cartProducts.reduce((acc, cartItem) => {
-    const id = cartItem._id;
+    const id = cartItem._id || cartItem;
     const color = cartItem.color || "default";
     const colorId = cartItem.colorId;
     const key = `${id}-${colorId || "default"}`;
-    if (!acc[key]) acc[key] = { _id: id, color, colorId, quantity: 0 };
+    
+    if (!acc[key]) {
+      acc[key] = { 
+        _id: id, 
+        color, 
+        colorId, 
+        quantity: 0,
+        itemData: cartItem
+      };
+    }
     acc[key].quantity += 1;
     return acc;
   }, {});
+  
   const groupedItems = Object.values(groupedCart);
 
+  // Calculer le total
   let total = 0;
+  let subtotal = 0;
+  
   for (const cartItem of cartProducts) {
     const id = typeof cartItem === 'string' ? cartItem : cartItem._id;
-    const price = products.find(p => p._id === id)?.price || 0;
-    total += price;
+    const product = products.find(p => p._id === id);
+    const price = product?.price || 0;
+    subtotal += price;
   }
+  
+  total = subtotal; // Pas de frais de livraison pour l'instant
+
+  const validateForm = () => {
+    const errors = {};
+    
+    if (!name || name.length < 3) {
+      errors.name = "Nom invalide (minimum 3 caractères)";
+    }
+    
+    if (!email || !email.includes('@')) {
+      errors.email = "Email invalide";
+    }
+    
+    if (!phone || !/^(2|4|5|9)\d{7}$/.test(phone)) {
+      errors.phone = "Numéro invalide. Format: 8 chiffres (2,4,5,9)";
+    }
+    
+    if (!streetAddress || streetAddress.length < 5) {
+      errors.streetAddress = "Adresse invalide (minimum 5 caractères)";
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   async function goToPayment() {
-    if(!name || name.length < 3) return setToast({message: "Nom invalide.", type: "error"});
-    if(!/^(2|4|5|9)\d{7}$/.test(phone)) return setToast({message: "Téléphone invalide.", type: "error"});
+    // Validation
+    if (!validateForm()) {
+      setToast({
+        message: "Veuillez corriger les erreurs dans le formulaire",
+        type: "error"
+      });
+      return;
+    }
+
+    if (cartProducts.length === 0) {
+      setToast({
+        message: "Votre panier est vide",
+        type: "error"
+      });
+      return;
+    }
 
     try {
       setIsLoading(true);
+      
+      // Préparer les produits pour le checkout
       const checkoutCart = groupedItems.map(item => ({
         _id: item._id,
         colorId: item.colorId,
-        color: item.color,      
+        color: item.color,
         quantity: item.quantity
       }));
 
-      await axios.post("/api/checkout", {
-        name, email, phone, streetAddress,
+      console.log("📦 Envoi de la commande:", {
+        name,
+        email,
+        phone,
+        streetAddress,
+        cartProducts: checkoutCart,
+        total
+      });
+
+      // Appeler l'API checkout
+      const response = await axios.post("/api/checkout", {
+        name, 
+        email, 
+        phone, 
+        streetAddress,
         country: "Tunisie",
         cartProducts: checkoutCart,
         paymentMethod: "Paiement à la livraison"
       });
 
-      setToast({message: "Commande confirmée !", type: "success"});
-      clearCart();
+      console.log("✅ Réponse API:", response.data);
+
+      if (response.data.success) {
+        setToast({
+          message: "✅ Commande confirmée ! Redirection vers votre compte...",
+          type: "success"
+        });
+        
+        // Vider le panier
+        clearCart();
+        
+        // Rediriger vers la page compte après 2 secondes
+        setTimeout(() => {
+          router.push("/account");
+        }, 2000);
+      } else {
+        throw new Error(response.data.error || "Erreur inconnue lors de la commande");
+      }
+
     } catch (err) {
-      console.error("CHECKOUT FRONT ERROR:", err);
-      let message = "Erreur lors de la commande.";
-      if(err.response?.data?.error) message = err.response.data.error;
-      setToast({message, type: "error"});
+      console.error("❌ ERREUR CHECKOUT:", err.response?.data || err.message);
+      
+      let message = "Erreur lors de la commande. Veuillez réessayer.";
+      
+      if (err.response?.data?.error) {
+        message = err.response.data.error;
+      } else if (err.response?.data?.details) {
+        message = `Erreur technique: ${err.response.data.details}`;
+      } else if (err.message) {
+        message = err.message;
+      }
+      
+      setToast({
+        message,
+        type: "error"
+      });
     } finally {
       setIsLoading(false);
       setTimeout(() => setToast(null), 4000);
     }
   }
 
-  if(status === "loading") return <Center><div style={{padding:'100px', textAlign:'center'}}>Chargement...</div></Center>;
+  if (status === "loading") {
+    return (
+      <>
+        <Header />
+        <Center>
+          <Box style={{ textAlign: 'center', padding: '100px 20px' }}>
+            <div style={{ fontSize: '18px', color: TEXT_MUTED }}>Chargement...</div>
+          </Box>
+        </Center>
+      </>
+    );
+  }
+
+  if (!session) {
+    return null; // La redirection est gérée par useEffect
+  }
 
   return (
     <>
@@ -244,70 +579,236 @@ export default function CartPage() {
       <Center>
         <ColumnsWrapper>
           <Box>
-            <Title>Votre Panier</Title>
-            {!cartProducts.length ? (
-              <div style={{color: TEXT_MUTED, textAlign: 'center', padding: '40px 0'}}>Panier vide</div>
+            <Title>
+              <span style={{ fontSize: '24px' }}>🛒</span> Votre Panier
+            </Title>
+            
+            {cartProducts.length === 0 ? (
+              <EmptyCart>
+                <div className="empty-icon">🛒</div>
+                <div className="empty-text">Votre panier est vide</div>
+                <a href="/products" className="empty-button">
+                  Découvrir nos produits
+                </a>
+              </EmptyCart>
             ) : (
-              <StyledTable>
-                <thead><tr><th>Produit</th><th>Quantité</th><th>Total</th></tr></thead>
-                <tbody>
-                  {groupedItems.map((item, idx) => {
-                    const product = products.find(p => p._id === item._id);
-                    const colorVariant = product?.properties?.colorVariants?.find(v => v.color === item.color);
-                    const displayImage = colorVariant ? colorVariant.imageUrl : product?.images?.[0];
-                    return (
-                      <tr key={idx}>
-                        <ProductInfoCell>
-                          <ProductImageBox><img src={displayImage} alt=""/></ProductImageBox>
-                          <div>
-                            <div style={{fontSize: '0.9rem'}}>{product?.title}</div>
-                            {item.color && item.color !== 'default' && (
-                              <ColorIndicator color={item.color}><div />{item.color}</ColorIndicator>
-                            )}
-                          </div>
-                        </ProductInfoCell>
-                        <td>
-                          <MobileFlexRow>
-                            <QuantityControls>
-                              <QuantityButton onClick={() => removeProduct(item)}>-</QuantityButton>
-                              <QuantityLabel>{item.quantity}</QuantityLabel>
-                              <QuantityButton onClick={() => addProduct(item)}>+</QuantityButton>
-                            </QuantityControls>
-                            <div style={{fontWeight: 700}}>
-                              {((product?.price || 0) * item.quantity).toLocaleString()} TND
+              <>
+                <StyledTable>
+                  <thead>
+                    <tr>
+                      <th>Produit</th>
+                      <th>Quantité</th>
+                      <th>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {groupedItems.map((item, idx) => {
+                      const product = products.find(p => p._id === item._id);
+                      const colorVariant = product?.properties?.colorVariants?.find(v => 
+                        v.color === item.color || v._id.toString() === item.colorId
+                      );
+                      const displayImage = colorVariant?.imageUrl || product?.images?.[0] || "/default-product.jpg";
+                      
+                      return (
+                        <tr key={`${item._id}-${idx}`}>
+                          <ProductInfoCell>
+                            <ProductImageBox>
+                              <img src={displayImage} alt={product?.title || "Produit"} />
+                            </ProductImageBox>
+                            <div>
+                              <div style={{ fontSize: '0.95rem', fontWeight: 600 }}>
+                                {product?.title || "Produit"}
+                              </div>
+                              <div style={{ fontSize: '0.8rem', color: TEXT_MUTED, marginTop: '2px' }}>
+                                Réf: {product?.reference || "N/A"}
+                              </div>
+                              {item.color && item.color !== 'default' && (
+                                <ColorIndicator color={item.color}>
+                                  <div className="color-box" />
+                                  <span>{item.color}</span>
+                                </ColorIndicator>
+                              )}
                             </div>
-                          </MobileFlexRow>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </StyledTable>
-            )}
-            {cartProducts.length > 0 && (
-              <TotalSummary>
-                <div className="grand-total">
-                  <span>Total</span>
-                  <span>{total.toLocaleString()} TND</span>
-                </div>
-              </TotalSummary>
+                          </ProductInfoCell>
+                          <td>
+                            <MobileFlexRow>
+                              <QuantityControls>
+                                <QuantityButton 
+                                  onClick={() => removeProduct(item.itemData || item._id)}
+                                  disabled={isLoading}
+                                >
+                                  -
+                                </QuantityButton>
+                                <QuantityLabel>{item.quantity}</QuantityLabel>
+                                <QuantityButton 
+                                  onClick={() => addProduct(item.itemData || item._id)}
+                                  disabled={isLoading}
+                                >
+                                  +
+                                </QuantityButton>
+                              </QuantityControls>
+                              <div style={{ fontWeight: 700, fontSize: '1rem' }}>
+                                {((product?.price || 0) * item.quantity).toLocaleString()} TND
+                              </div>
+                            </MobileFlexRow>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </StyledTable>
+                
+                <TotalSummary>
+                  <div className="subtotal">
+                    <span>Sous-total</span>
+                    <span>{subtotal.toLocaleString()} TND</span>
+                  </div>
+                  <div className="grand-total">
+                    <span>Total à payer</span>
+                    <span>{total.toLocaleString()} TND</span>
+                  </div>
+                </TotalSummary>
+              </>
             )}
           </Box>
+          
           {cartProducts.length > 0 && (
             <Box>
-              <Title>Livraison</Title>
-              <StyledInput placeholder="Nom complet" value={name} onChange={e => setName(e.target.value)} />
-              <StyledInput value={email} readOnly style={{background:'#f1f5f9'}}/>
-              <StyledInput placeholder="Téléphone" value={phone} onChange={e => setPhone(e.target.value)} />
-              <StyledInput placeholder="Adresse exacte" value={streetAddress} onChange={e => setStreetAddress(e.target.value)} />
-              <PaymentButton disabled={isLoading} onClick={goToPayment}>
-                {isLoading ? "En cours..." : "Confirmer"}
+              <Title>
+                <span style={{ fontSize: '24px' }}>📦</span> Informations de livraison
+              </Title>
+              
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: TEXT_DARK }}>
+                  Nom complet *
+                </label>
+                <StyledInput 
+                  placeholder="Votre nom complet" 
+                  value={name} 
+                  onChange={e => {
+                    setName(e.target.value);
+                    if (validationErrors.name) {
+                      setValidationErrors(prev => ({ ...prev, name: undefined }));
+                    }
+                  }}
+                />
+                {validationErrors.name && (
+                  <ValidationError>
+                    ⚠️ {validationErrors.name}
+                  </ValidationError>
+                )}
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: TEXT_DARK }}>
+                  Email *
+                </label>
+                <StyledInput 
+                  value={email} 
+                  onChange={e => {
+                    setEmail(e.target.value);
+                    if (validationErrors.email) {
+                      setValidationErrors(prev => ({ ...prev, email: undefined }));
+                    }
+                  }}
+                />
+                {validationErrors.email && (
+                  <ValidationError>
+                    ⚠️ {validationErrors.email}
+                  </ValidationError>
+                )}
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: TEXT_DARK }}>
+                  Téléphone *
+                </label>
+                <StyledInput 
+                  placeholder="Ex: 20000000" 
+                  value={phone} 
+                  onChange={e => {
+                    setPhone(e.target.value.replace(/\D/g, ''));
+                    if (validationErrors.phone) {
+                      setValidationErrors(prev => ({ ...prev, phone: undefined }));
+                    }
+                  }}
+                  maxLength="8"
+                />
+                {validationErrors.phone && (
+                  <ValidationError>
+                    ⚠️ {validationErrors.phone}
+                  </ValidationError>
+                )}
+                <div style={{ fontSize: '0.8rem', color: TEXT_MUTED, marginTop: '4px' }}>
+                  Format: 8 chiffres (commence par 2, 4, 5 ou 9)
+                </div>
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: TEXT_DARK }}>
+                  Adresse de livraison *
+                </label>
+                <StyledInput 
+                  placeholder="Rue, numéro, étage, ville..." 
+                  value={streetAddress} 
+                  onChange={e => {
+                    setStreetAddress(e.target.value);
+                    if (validationErrors.streetAddress) {
+                      setValidationErrors(prev => ({ ...prev, streetAddress: undefined }));
+                    }
+                  }}
+                />
+                {validationErrors.streetAddress && (
+                  <ValidationError>
+                    ⚠️ {validationErrors.streetAddress}
+                  </ValidationError>
+                )}
+              </div>
+              
+              <div style={{ marginTop: '30px', padding: '20px', background: '#f8fafc', borderRadius: '12px' }}>
+                <div style={{ fontWeight: 600, marginBottom: '10px', color: TEXT_DARK }}>
+                  ⚠️ Important
+                </div>
+                <div style={{ fontSize: '0.85rem', color: TEXT_MUTED, lineHeight: 1.5 }}>
+                  <p>• Paiement à la livraison uniquement</p>
+                  <p>• Livraison dans toute la Tunisie</p>
+                  <p>• Vous serez contacté pour confirmer la commande</p>
+                </div>
+              </div>
+              
+              <PaymentButton 
+                onClick={goToPayment} 
+                disabled={isLoading || cartProducts.length === 0}
+              >
+                {isLoading ? (
+                  <>
+                    <LoadingSpinner />
+                    Traitement en cours...
+                  </>
+                ) : (
+                  <>
+                    <span style={{ fontSize: '20px' }}>✅</span>
+                    Confirmer la commande
+                  </>
+                )}
               </PaymentButton>
+              
+              <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '0.8rem', color: TEXT_MUTED }}>
+                En cliquant, vous acceptez nos conditions de vente
+              </div>
             </Box>
           )}
         </ColumnsWrapper>
       </Center>
-      {toast && <ToastBox type={toast.type}>{toast.message}</ToastBox>}
+      
+      {toast && (
+        <ToastBox type={toast.type}>
+          <span className="toast-icon">
+            {toast.type === "success" ? "✅" : "❌"}
+          </span>
+          <span>{toast.message}</span>
+        </ToastBox>
+      )}
     </>
   );
 }
