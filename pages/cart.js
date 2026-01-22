@@ -6,14 +6,12 @@ import { useRouter } from "next/router";
 import Header from "@/components/Header";
 import Center from "@/components/Center";
 import styled, { keyframes } from "styled-components";
-import Table from "@/components/Table";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
 import { CartContext } from "@/components/CartContext";
 import axios from "axios";
 
 const ACCENT_COLOR = "#2563eb"; 
-const BG_SOFT = "#f8fafc";
 const TEXT_DARK = "#0f172a";
 const TEXT_MUTED = "#64748b";
 
@@ -286,19 +284,26 @@ export default function CartPage() {
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
-    if(status === "unauthenticated" && router.isReady) router.replace("/account");
+    if(status === "unauthenticated" && router.isReady) {
+      router.replace("/account");
+    }
   }, [status, router]);
 
   useEffect(() => {
-    if(session?.user?.email) setEmail(session.user.email);
+    if(session?.user?.email) {
+      setEmail(session.user.email);
+    }
   }, [session]);
 
   useEffect(() => {
     if(cartProducts.length > 0){
       const ids = cartProducts.map(p => typeof p === 'string' ? p : p._id);
       axios.post("/api/cart", { ids: [...new Set(ids)] })
-        .then(res => setProducts(res.data));
-    } else setProducts([]);
+        .then(res => setProducts(res.data))
+        .catch(err => console.error("Error fetching products:", err));
+    } else {
+      setProducts([]);
+    }
   }, [cartProducts]);
 
   const groupedCart = cartProducts.reduce((acc, cartItem) => {
@@ -331,11 +336,23 @@ export default function CartPage() {
   }
 
   async function goToPayment() {
-    if(!name || name.length < 3) return setToast({message: "Nom invalide.", type: "error"});
-    if(!/^(2|4|5|9)\d{7}$/.test(phone)) return setToast({message: "Téléphone invalide.", type: "error"});
+    // Vérification des champs obligatoires
+    if(!name || name.trim().length < 3) {
+      return setToast({message: "Veuillez entrer un nom valide (min. 3 caractères).", type: "error"});
+    }
+    
+    if(!phone || !/^(2|4|5|9)\d{7}$/.test(phone)) {
+      return setToast({message: "Veuillez entrer un numéro de téléphone tunisien valide.", type: "error"});
+    }
+    
+    if(!streetAddress || streetAddress.trim().length < 5) {
+      return setToast({message: "Veuillez entrer une adresse de livraison valide.", type: "error"});
+    }
 
     try {
       setIsLoading(true);
+      
+      // Préparer les données pour le checkout
       const checkoutCart = groupedItems.map(item => ({
         _id: item._id,
         colorId: item.colorId,
@@ -343,43 +360,69 @@ export default function CartPage() {
         quantity: item.quantity
       }));
 
+      console.log("Envoi de la commande...", {
+        name, email, phone, streetAddress,
+        cartProducts: checkoutCart
+      });
+
+      // Appel API
       const response = await axios.post("/api/checkout", {
-        name, 
-        email, 
-        phone, 
-        streetAddress,
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        streetAddress: streetAddress.trim(),
         country: "Tunisie",
         cartProducts: checkoutCart,
         paymentMethod: "Paiement à la livraison",
         userId: session?.user?.id || null
       });
 
-      // Vérifier si la réponse est réussie
-      if (response.data && response.data.success) {
+      console.log("Réponse du serveur:", response.data);
+
+      // Vérifier la réponse
+      if (response.data && response.data.success === true) {
         setToast({
           message: `Commande confirmée ! Votre numéro de commande: ${response.data.orderId}`,
           type: "success"
         });
-        clearCart();
         
-        // Rediriger vers une page de confirmation après 2 secondes
+        // Vider le panier
+        if (clearCart && typeof clearCart === 'function') {
+          clearCart();
+        }
+        
+        // Rediriger après 3 secondes
         setTimeout(() => {
           router.push(`/commande/${response.data.orderId}`);
-        }, 2000);
+        }, 3000);
       } else {
-        // Si le backend retourne success: false
         setToast({
           message: response.data?.message || "Erreur lors de la commande.",
           type: "error"
         });
       }
     } catch (err) {
-      console.error("Erreur de commande:", err.response?.data || err.message);
+      console.error("Erreur détaillée de commande:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status
+      });
       
       // Message d'erreur plus spécifique
-      const errorMessage = err.response?.data?.error || 
-                          err.response?.data?.message || 
-                          "Erreur lors de la commande.";
+      let errorMessage = "Erreur lors de la commande.";
+      
+      if (err.response) {
+        if (err.response.status === 400) {
+          errorMessage = err.response.data?.error || "Données invalides. Veuillez vérifier vos informations.";
+        } else if (err.response.status === 500) {
+          errorMessage = "Erreur serveur. Veuillez réessayer plus tard.";
+        } else {
+          errorMessage = err.response.data?.error || err.response.data?.message || errorMessage;
+        }
+      } else if (err.request) {
+        errorMessage = "Impossible de contacter le serveur. Vérifiez votre connexion internet.";
+      }
+      
       setToast({message: errorMessage, type: "error"});
     } finally {
       setIsLoading(false);
@@ -387,7 +430,13 @@ export default function CartPage() {
     }
   }
 
-  if(status === "loading") return <Center><div style={{padding:'100px', textAlign:'center'}}>Chargement...</div></Center>;
+  if(status === "loading") {
+    return (
+      <Center>
+        <div style={{padding:'100px', textAlign:'center'}}>Chargement...</div>
+      </Center>
+    );
+  }
 
   return (
     <>
@@ -400,35 +449,60 @@ export default function CartPage() {
                Votre Panier
             </Title>
             {!cartProducts.length ? (
-              <div style={{color: TEXT_MUTED, textAlign: 'center', padding: '40px 0'}}>Panier vide</div>
+              <div style={{color: TEXT_MUTED, textAlign: 'center', padding: '40px 0'}}>
+                Votre panier est vide
+              </div>
             ) : (
               <StyledTable>
-                <thead><tr><th>Produit</th><th>Quantité</th><th>Total</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Produit</th>
+                    <th>Quantité</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {groupedItems.map((item, idx) => {
                     const product = products.find(p => p._id === item._id);
                     const colorVariant = product?.properties?.colorVariants?.find(v => v.color === item.color);
                     const displayImage = colorVariant ? colorVariant.imageUrl : product?.images?.[0];
+                    const price = product?.price || 0;
+                    const itemTotal = price * item.quantity;
+                    
                     return (
                       <tr key={idx}>
                         <ProductInfoCell>
-                          <ProductImageBox><img src={displayImage} alt=""/></ProductImageBox>
+                          <ProductImageBox>
+                            <img src={displayImage} alt={product?.title || "Produit"} />
+                          </ProductImageBox>
                           <div>
                             <div style={{fontSize: '0.9rem'}}>{product?.title}</div>
                             {item.color && item.color !== 'default' && (
-                              <ColorIndicator color={item.color}><div />{item.color}</ColorIndicator>
+                              <ColorIndicator color={item.color}>
+                                <div />{item.color}
+                              </ColorIndicator>
                             )}
                           </div>
                         </ProductInfoCell>
                         <td>
                           <MobileFlexRow>
                             <QuantityControls>
-                              <QuantityButton onClick={() => removeProduct(item)}>-</QuantityButton>
+                              <QuantityButton 
+                                onClick={() => removeProduct && removeProduct(item)}
+                                disabled={!removeProduct}
+                              >
+                                -
+                              </QuantityButton>
                               <QuantityLabel>{item.quantity}</QuantityLabel>
-                              <QuantityButton onClick={() => addProduct(item)}>+</QuantityButton>
+                              <QuantityButton 
+                                onClick={() => addProduct && addProduct(item)}
+                                disabled={!addProduct}
+                              >
+                                +
+                              </QuantityButton>
                             </QuantityControls>
                             <div style={{fontWeight: 700}}>
-                              {((product?.price || 0) * item.quantity).toLocaleString()} TND
+                              {itemTotal.toLocaleString()} TND
                             </div>
                           </MobileFlexRow>
                         </td>
@@ -451,20 +525,50 @@ export default function CartPage() {
             <Box>
               <Title>
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="3" width="15" height="13"/><polyline points="16 8 20 8 23 11 23 16 16 16"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                Livraison
+                Informations de livraison
               </Title>
-              <StyledInput placeholder="Nom complet" value={name} onChange={e => setName(e.target.value)} />
-              <StyledInput value={email} readOnly style={{background:'#f1f5f9'}}/>
-              <StyledInput placeholder="Téléphone" value={phone} onChange={e => setPhone(e.target.value)} />
-              <StyledInput placeholder="Adresse exacte" value={streetAddress} onChange={e => setStreetAddress(e.target.value)} />
-              <PaymentButton disabled={isLoading} onClick={goToPayment}>
-                {isLoading ? "En cours..." : "Confirmer la commande"}
+              <StyledInput 
+                placeholder="Nom complet *" 
+                value={name} 
+                onChange={e => setName(e.target.value)}
+                required
+              />
+              <StyledInput 
+                placeholder="Email *" 
+                value={email} 
+                onChange={e => setEmail(e.target.value)}
+                required
+              />
+              <StyledInput 
+                placeholder="Téléphone * (ex: 25555666)" 
+                value={phone} 
+                onChange={e => setPhone(e.target.value)}
+                required
+              />
+              <StyledInput 
+                placeholder="Adresse exacte de livraison *" 
+                value={streetAddress} 
+                onChange={e => setStreetAddress(e.target.value)}
+                required
+              />
+              <PaymentButton 
+                disabled={isLoading || !name || !email || !phone || !streetAddress}
+                onClick={goToPayment}
+              >
+                {isLoading ? "Traitement en cours..." : "Confirmer la commande"}
               </PaymentButton>
+              <p style={{fontSize: '0.8rem', color: TEXT_MUTED, marginTop: '10px', textAlign: 'center'}}>
+                * Champs obligatoires
+              </p>
             </Box>
           )}
         </ColumnsWrapper>
       </Center>
-      {toast && <ToastBox type={toast.type}>{toast.message}</ToastBox>}
+      {toast && (
+        <ToastBox type={toast.type}>
+          {toast.message}
+        </ToastBox>
+      )}
     </>
   );
 }
