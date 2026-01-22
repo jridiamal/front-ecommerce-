@@ -1,4 +1,3 @@
-// components/CartContext.js
 import { createContext, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 
@@ -8,14 +7,12 @@ export function CartContextProvider({ children }) {
   const { data: session } = useSession();
   const ls = typeof window !== "undefined" ? window.localStorage : null;
 
-  // clé panier spécifique à user ou guest
   const cartKey = session?.user?.email
-    ? `cart_${session.user.email}`   // user connecté
-    : "cart_guest";                  // invité
+    ? `cart_${session.user.email}`   
+    : "cart_guest";                  
 
   const [cartProducts, setCartProducts] = useState([]);
 
-  // Charger panier depuis localStorage
   useEffect(() => {
     if (ls) {
       const savedCart = ls.getItem(cartKey);
@@ -23,7 +20,6 @@ export function CartContextProvider({ children }) {
     }
   }, [cartKey]);
 
-  // Sauvegarder panier dans localStorage à chaque modification
   useEffect(() => {
     if (ls) {
       ls.setItem(cartKey, JSON.stringify(cartProducts));
@@ -42,7 +38,7 @@ export function CartContextProvider({ children }) {
    * }
    */
   function addProduct(item) {
-    if (item.outOfStock) return; // sécurité
+    if (item.outOfStock) return; 
     setCartProducts(prev => [...prev, item]);
   }
 
@@ -87,8 +83,8 @@ export function CartContextProvider({ children }) {
         cartProducts,
         addProduct,
         removeProduct,
-        clearCartMemory, // clear memory seulement
-        clearCartAll,    // clear memory + LS
+        clearCartMemory, 
+        clearCartAll,    
         getCartTotal,
         getCartCount,
       }}
