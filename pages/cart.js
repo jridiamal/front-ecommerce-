@@ -34,7 +34,9 @@ const Box = styled.div`
   padding: 20px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
   border: 1px solid #f1f5f9;
-  @media(min-width: 768px){ padding: 40px; }
+  @media(min-width: 768px){ 
+    padding: 40px; 
+  }
 `;
 
 const Title = styled.h2`
@@ -45,34 +47,50 @@ const Title = styled.h2`
   display: flex;
   align-items: center;
   gap: 12px;
-  @media(min-width: 768px){ font-size: 1.5rem; margin-bottom: 30px; }
+  @media(min-width: 768px){ 
+    font-size: 1.5rem; 
+    margin-bottom: 30px; 
+  }
 `;
 
 const StyledTable = styled.table`
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  thead { display: none; }
+  
+  thead { 
+    display: none; 
+  }
+  
   tr { 
     display: flex; 
     flex-direction: column; 
     padding: 15px 0; 
     border-bottom: 1px solid #f1f5f9; 
   }
+  
   td { 
     display: block; 
     padding: 5px 0; 
   }
+  
   @media(min-width: 768px) {
-    display: table;
-    thead { display: table-header-group; }
-    tr { display: table-row; padding: 0; }
+    thead { 
+      display: table-header-group; 
+    }
+    
+    tr { 
+      display: table-row; 
+      padding: 0; 
+    }
+    
     td { 
       display: table-cell; 
       padding: 20px 0; 
       border-top: 1px solid #f1f5f9; 
       vertical-align: middle;
     }
+    
     th { 
       display: table-cell; 
       text-align: left; 
@@ -99,6 +117,7 @@ const MobileFlexRow = styled.div`
   align-items: center;
   width: 100%;
   margin-top: 10px;
+  
   @media(min-width: 768px) { 
     display: contents; 
   }
@@ -112,12 +131,13 @@ const ColorIndicator = styled.div`
   font-weight: 500;
   color: ${TEXT_MUTED};
   margin-top: 6px;
+  
   .color-box {
     width: 14px; 
     height: 14px; 
     border-radius: 4px;
     border: 1px solid rgba(0,0,0,0.1);
-    background-color: ${props => props.color || '#ccc'};
+    background-color: ${props => props.$color || '#ccc'};
   }
 `;
 
@@ -131,11 +151,13 @@ const ProductImageBox = styled.div`
   justify-content: center; 
   align-items: center; 
   background: #fff;
+  
   img { 
     max-width: 100%; 
     max-height: 100%; 
     object-fit: contain; 
   }
+  
   @media(min-width: 768px){ 
     width: 90px; 
     height: 90px; 
@@ -164,13 +186,16 @@ const QuantityButton = styled.button`
   border-radius: 8px; 
   cursor: pointer;
   transition: all 0.2s ease;
+  
   &:hover { 
     background-color: ${ACCENT_COLOR}; 
     color: white; 
   }
+  
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    
     &:hover {
       background-color: #fff;
       color: ${TEXT_DARK};
@@ -194,11 +219,13 @@ const StyledInput = styled(Input)`
   font-size: 16px; 
   width: 100%;
   box-sizing: border-box;
+  
   &:focus { 
     border-color: ${ACCENT_COLOR}; 
     outline: none; 
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
   }
+  
   &:read-only {
     background-color: #f8fafc;
     color: #64748b;
@@ -210,6 +237,15 @@ const TotalSummary = styled.div`
   border-top: 2px dashed #f1f5f9; 
   margin-top: 25px; 
   padding-top: 20px;
+  
+  .subtotal {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    color: ${TEXT_MUTED};
+    font-size: 0.95rem;
+  }
+  
   .grand-total { 
     display: flex; 
     justify-content: space-between; 
@@ -217,17 +253,11 @@ const TotalSummary = styled.div`
     font-size: 1.2rem; 
     font-weight: 800; 
     color: ${TEXT_DARK}; 
+    
     span:last-child { 
       color: ${ACCENT_COLOR}; 
       font-size: 1.4rem;
     } 
-  }
-  .subtotal {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
-    color: ${TEXT_MUTED};
-    font-size: 0.95rem;
   }
 `;
 
@@ -264,13 +294,25 @@ const PaymentButton = styled.button`
 `;
 
 const fadeIn = keyframes`
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { 
+    opacity: 0; 
+    transform: translateY(20px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
 `;
 
 const fadeOut = keyframes`
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(20px); }
+  from { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+  to { 
+    opacity: 0; 
+    transform: translateY(20px); 
+  }
 `;
 
 const ToastBox = styled.div`
@@ -284,7 +326,7 @@ const ToastBox = styled.div`
   font-weight: 600; 
   z-index: 9999;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  border-left: 5px solid ${({ type }) => type === "success" ? "#10b981" : "#ef4444"};
+  border-left: 5px solid ${props => props.$type === "success" ? "#10b981" : "#ef4444"};
   display: flex;
   align-items: center;
   gap: 12px;
@@ -333,6 +375,8 @@ const EmptyCart = styled.div`
     font-weight: 600;
     margin-top: 10px;
     transition: background 0.2s;
+    border: none;
+    cursor: pointer;
     
     &:hover {
       background: #1d4ed8;
@@ -352,8 +396,12 @@ const ValidationError = styled.div`
 
 const LoadingSpinner = styled.div`
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% { 
+      transform: rotate(0deg); 
+    }
+    100% { 
+      transform: rotate(360deg); 
+    }
   }
   
   width: 20px;
@@ -405,11 +453,12 @@ const SuccessMessage = styled.div`
     transition: all 0.2s;
     text-decoration: none;
     display: inline-block;
+    border: none;
+    font-family: inherit;
     
     &.primary {
       background: ${ACCENT_COLOR};
       color: white;
-      border: none;
       
       &:hover {
         background: #1d4ed8;
@@ -447,7 +496,7 @@ export default function CartPage() {
   const [orderId, setOrderId] = useState(null);
 
   useEffect(() => {
-    if (status === "unauthenticated" && router.isReady) {
+    if (status === "unauthenticated") {
       router.push("/account");
     }
   }, [status, router]);
@@ -733,7 +782,7 @@ export default function CartPage() {
                       {groupedItems.map((item, idx) => {
                         const product = products.find(p => p._id === item._id);
                         const colorVariant = product?.properties?.colorVariants?.find(v => 
-                          v.color === item.color || v._id.toString() === item.colorId
+                          v.color === item.color || v._id?.toString() === item.colorId
                         );
                         const displayImage = colorVariant?.imageUrl || product?.images?.[0] || "/default-product.jpg";
                         
@@ -751,7 +800,7 @@ export default function CartPage() {
                                   Réf: {product?.reference || "N/A"}
                                 </div>
                                 {item.color && item.color !== 'default' && (
-                                  <ColorIndicator color={item.color}>
+                                  <ColorIndicator $color={item.color}>
                                     <div className="color-box" />
                                     <span>{item.color}</span>
                                   </ColorIndicator>
@@ -932,7 +981,7 @@ export default function CartPage() {
       
       {toast && (
         <ToastBox 
-          type={toast.type} 
+          $type={toast.type} 
           className={toast.closing ? 'closing' : ''}
         >
           <span className="toast-icon">
