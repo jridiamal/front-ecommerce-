@@ -20,7 +20,7 @@ const Card = styled.div`
   border-radius: 12px;
   padding: 15px;
   width: 100%;
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto 15px;
   box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
   box-sizing: border-box;
@@ -148,13 +148,17 @@ const StatusBadge = styled.span`
   background:${props => 
     props.status === "Prête" ? "#dcfce7" : 
     props.status === "Livrée" ? "#d1fae5" :
-    props.status === "Annulée" ? "#fee2e2" : 
-    "#f1f5f9"};
+    props.status === "En préparation" ? "#fef3c7" :
+    props.status === "Confirmée" ? "#dbeafe" :
+    props.status === "En attente" ? "#f1f5f9" : 
+    "#fee2e2"};
   color:${props => 
     props.status === "Prête" ? "#166534" : 
     props.status === "Livrée" ? "#065f46" :
-    props.status === "Annulée" ? "#991b1b" : 
-    "#475569"};
+    props.status === "En préparation" ? "#92400e" :
+    props.status === "Confirmée" ? "#1e40af" :
+    props.status === "En attente" ? "#475569" : 
+    "#991b1b"};
 `;
 
 const CancelButton = styled.button`
@@ -198,13 +202,35 @@ const TimeBadge = styled.div`
   margin-top: 4px;
 `;
 
+const FilterButtons = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+`;
+
+const FilterButton = styled.button`
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid ${props => props.active ? '#2563eb' : '#cbd5e1'};
+  background: ${props => props.active ? '#dbeafe' : 'white'};
+  color: ${props => props.active ? '#1e40af' : '#475569'};
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  &:hover {
+    background: ${props => props.active ? '#dbeafe' : '#f8fafc'};
+  }
+`;
+
 export default function AccountPage() {
   const { data: session, status } = useSession();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [orders, setOrders] = useState([]);
-  const [historique, setHistorique] = useState([]);
+  const [allOrders, setAllOrders] = useState([]); // TOUTES les commandes
+  const [filteredOrders, setFilteredOrders] = useState([]);
   const [wishlist, setWishlist] = useState([]);
   const [activeView, setActiveView] = useState('dashboard');
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'pending', 'ready', 'delivered', 'cancelled'
 
   // Fonction pour calculer le temps restant avant que la commande soit prête
   const calculateTimeRemaining = (createdAt) => {
@@ -225,15 +251,11 @@ export default function AccountPage() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      // Récupérer les commandes avec mise à jour automatique
+      // Récupérer TOUTES les commandes
       fetch("/api/orders").then(res => res.json()).then(data => {
         if (Array.isArray(data)) {
-          // Commandes actives = "En attente" seulement
-          const active = data.filter(o => o.status === "En attente");
-          // Historique = "Prête", "Livrée", "Annulée"
-          const hist = data.filter(o => ["Prête", "Livrée", "Annulée"].includes(o.status));
-          setOrders(active);
-          setHistorique(hist);
+          setAllOrders(data);
+          setFilteredOrders(data);
         }
       }).catch(err => {
         console.error("Erreur chargement commandes:", err);
@@ -249,6 +271,21 @@ export default function AccountPage() {
     }
   }, [status]);
 
+  // Filtrer les commandes selon le statut
+  useEffect(() => {
+    if (statusFilter === 'all') {
+      setFilteredOrders(allOrders);
+    } else if (statusFilter === 'pending') {
+      setFilteredOrders(allOrders.filter(order => order.status === "En attente"));
+    } else if (statusFilter === 'ready') {
+      setFilteredOrders(allOrders.filter(order => order.status === "Prête"));
+    } else if (statusFilter === 'delivered') {
+      setFilteredOrders(allOrders.filter(order => order.status === "Livrée"));
+    } else if (statusFilter === 'cancelled') {
+      setFilteredOrders(allOrders.filter(order => order.status === "Annulée"));
+    }
+  }, [statusFilter, allOrders]);
+
   const handleCancelOrder = async (orderId) => {
     if (!window.confirm("Êtes-vous sûr de vouloir annuler cette commande ?")) return;
     try {
@@ -259,11 +296,10 @@ export default function AccountPage() {
       });
       if (res.ok) {
         toast.success("✅ Commande annulée avec succès");
-        const cancelled = orders.find(o => o._id === orderId);
-        setOrders(orders.filter(o => o._id !== orderId));
-        if (cancelled) {
-          setHistorique(prev => [...prev, { ...cancelled, status: "Annulée" }]);
-        }
+        // Mettre à jour la commande dans la liste
+        setAllOrders(prev => prev.map(order => 
+          order._id === orderId ? { ...order, status: "Annulée" } : order
+        ));
       } else {
         const error = await res.json();
         toast.error(error.error || "Erreur lors de l'annulation");
@@ -273,12 +309,13 @@ export default function AccountPage() {
     }
   };
 
-  const handleDeleteHistorique = async () => {
-    if (!window.confirm("Supprimer tout l'historique ? Cette action est irréversible.")) return;
+  const handleDeleteAllHistory = async () => {
+    if (!window.confirm("Supprimer tout l'historique ? Les commandes annulées, livrées et prêtes seront supprimées.")) return;
     try {
       const res = await fetch("/api/historique", { method: "DELETE" });
       if (res.ok) {
-        setHistorique([]);
+        // Filtrer pour garder seulement les commandes "En attente"
+        setAllOrders(prev => prev.filter(order => order.status === "En attente"));
         toast.success("🗑️ Historique supprimé");
       } else {
         const error = await res.json();
@@ -318,16 +355,16 @@ export default function AccountPage() {
     <>
       <Header />
       <Container>
-        {activeView === 'history' ? (
+        {activeView === 'orders' ? (
           <Card>
             <BackButton onClick={() => setActiveView('dashboard')}>
               ← Retour au tableau de bord
             </BackButton>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: '20px' }}>
-              <h3 style={{ fontSize: "18px", margin: 0 }}>📜 Historique des commandes</h3>
-              {historique.length > 0 && (
+              <h3 style={{ fontSize: "18px", margin: 0 }}>📋 Toutes mes commandes</h3>
+              {allOrders.filter(o => ["Annulée", "Livrée", "Prête"].includes(o.status)).length > 0 && (
                 <button 
-                  onClick={handleDeleteHistorique} 
+                  onClick={handleDeleteAllHistory} 
                   style={{ 
                     background: "#fee2e2", 
                     color: "#991b1b", 
@@ -342,54 +379,114 @@ export default function AccountPage() {
                     gap: "5px"
                   }}
                 >
-                  🗑️ Tout supprimer
+                  🗑️ Supprimer l'historique
                 </button>
               )}
             </div>
-            {!historique.length ? (
-              <p style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>
-                Aucun historique de commandes.
+
+            {/* Filtres */}
+            <FilterButtons>
+              <FilterButton 
+                active={statusFilter === 'all'}
+                onClick={() => setStatusFilter('all')}
+              >
+                Toutes ({allOrders.length})
+              </FilterButton>
+              <FilterButton 
+                active={statusFilter === 'pending'}
+                onClick={() => setStatusFilter('pending')}
+              >
+                En attente ({allOrders.filter(o => o.status === "En attente").length})
+              </FilterButton>
+              <FilterButton 
+                active={statusFilter === 'ready'}
+                onClick={() => setStatusFilter('ready')}
+              >
+                Prêtes ({allOrders.filter(o => o.status === "Prête").length})
+              </FilterButton>
+              <FilterButton 
+                active={statusFilter === 'delivered'}
+                onClick={() => setStatusFilter('delivered')}
+              >
+                Livrées ({allOrders.filter(o => o.status === "Livrée").length})
+              </FilterButton>
+              <FilterButton 
+                active={statusFilter === 'cancelled'}
+                onClick={() => setStatusFilter('cancelled')}
+              >
+                Annulées ({allOrders.filter(o => o.status === "Annulée").length})
+              </FilterButton>
+            </FilterButtons>
+
+            {!filteredOrders.length ? (
+              <p style={{ textAlign: 'center', color: '#64748b', padding: '40px 20px' }}>
+                {statusFilter === 'all' 
+                  ? "Vous n'avez pas encore de commandes."
+                  : `Aucune commande ${statusFilter === 'pending' ? 'en attente' : 
+                     statusFilter === 'ready' ? 'prête' : 
+                     statusFilter === 'delivered' ? 'livrée' : 'annulée'}.`
+                }
               </p>
             ) : (
               <OrdersTable>
                 <thead>
                   <tr>
-                    <TableHeader>Statut</TableHeader>
+                    <TableHeader>ID Commande</TableHeader>
                     <TableHeader>Date</TableHeader>
+                    <TableHeader>Statut</TableHeader>
                     <TableHeader>Produits</TableHeader>
                     <TableHeader>Total</TableHeader>
+                    <TableHeader>Actions</TableHeader>
                   </tr>
                 </thead>
                 <tbody>
-                  {historique.map(order => {
+                  {filteredOrders.map(order => {
                     const timeInfo = calculateTimeRemaining(order.createdAt);
                     return (
-                      <tr key={order._id}>
-                        <TableCell data-label="Statut">
-                          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                            <StatusBadge status={order.status}>
-                              {order.status}
-                            </StatusBadge>
-                            {order.status === "Prête" && (
-                              <TimeBadge style={{ backgroundColor: timeInfo.bg, color: timeInfo.color }}>
-                                <span style={{ fontSize: "10px" }}>✅</span>
-                                {timeInfo.text}
-                              </TimeBadge>
-                            )}
-                          </div>
+                      <tr key={order._id} style={{
+                        backgroundColor: order.status === "Annulée" ? "#fef2f2" : 
+                                       order.status === "Prête" ? "#f0fdf4" : 
+                                       order.status === "Livrée" ? "#f0fdf4" : "white"
+                      }}>
+                        <TableCell data-label="ID Commande">
+                          <span style={{ 
+                            fontSize: '11px', 
+                            fontFamily: 'monospace',
+                            color: '#64748b'
+                          }}>
+                            #{order._id.toString().slice(-8)}
+                          </span>
                         </TableCell>
                         <TableCell data-label="Date">
                           {new Date(order.createdAt).toLocaleDateString('fr-FR', {
                             day: '2-digit',
                             month: '2-digit',
-                            year: 'numeric'
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
                           })}
+                        </TableCell>
+                        <TableCell data-label="Statut">
+                          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                            <StatusBadge status={order.status}>
+                              {order.status}
+                            </StatusBadge>
+                            {order.status === "En attente" && (
+                              <TimeBadge style={{ backgroundColor: timeInfo.bg, color: timeInfo.color }}>
+                                <span style={{ fontSize: "10px" }}>⏳</span>
+                                {timeInfo.text}
+                              </TimeBadge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell data-label="Produits">
                           <ProductList>
                             {order.line_items.map((item, i) => (
                               <ProductItem key={i}>
-                                <ProductImage src={item.image || item.price_data?.product_data?.images?.[0] || "/placeholder.png"} alt={item.name} />
+                                <ProductImage 
+                                  src={item.image || item.price_data?.product_data?.images?.[0] || "/placeholder.png"} 
+                                  alt={item.name} 
+                                />
                                 <ProductText>
                                   <p><b>{item.name || item.price_data?.product_data?.name || 'Produit'}</b></p>
                                   <p>Qté: {item.quantity} | {item.price || item.price_data?.unit_amount/100 || 0} DT</p>
@@ -399,7 +496,51 @@ export default function AccountPage() {
                           </ProductList>
                         </TableCell>
                         <TableCell data-label="Total">
-                          <strong>{order.total} DT</strong>
+                          <strong style={{ 
+                            fontSize: '16px',
+                            color: order.status === "Annulée" ? "#991b1b" : "#166534"
+                          }}>
+                            {order.total} DT
+                          </strong>
+                        </TableCell>
+                        <TableCell data-label="Actions">
+                          {order.status === "En attente" ? (
+                            <CancelButton onClick={() => handleCancelOrder(order._id)}>
+                              Annuler
+                            </CancelButton>
+                          ) : order.status === "Prête" ? (
+                            <button
+                              style={{
+                                padding: '8px 15px',
+                                background: '#dbeafe',
+                                color: '#1e40af',
+                                border: '1px solid #93c5fd',
+                                borderRadius: '8px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                cursor: 'pointer'
+                              }}
+                              onClick={() => toast.info("Votre commande est prête pour récupération")}
+                            >
+                              À récupérer
+                            </button>
+                          ) : order.status === "Livrée" ? (
+                            <span style={{ 
+                              fontSize: '12px', 
+                              color: '#065f46',
+                              fontWeight: '600'
+                            }}>
+                              ✅ Livrée
+                            </span>
+                          ) : (
+                            <span style={{ 
+                              fontSize: '12px', 
+                              color: '#991b1b',
+                              fontWeight: '600'
+                            }}>
+                              ❌ Annulée
+                            </span>
+                          )}
                         </TableCell>
                       </tr>
                     );
@@ -426,7 +567,7 @@ export default function AccountPage() {
                       
                       <button
                         onClick={() => {
-                          setActiveView('history');
+                          setActiveView('orders');
                           setIsDropdownOpen(false);
                         }}
                         style={{ 
@@ -444,16 +585,19 @@ export default function AccountPage() {
                           fontSize: '14px'
                         }}
                       >
-                        📜 Historique
-                        {historique.length > 0 && (
+                        📋 Toutes les commandes
+                        {allOrders.length > 0 && (
                           <span style={{ 
-                            display: "inline-block", 
-                            width: "8px", 
-                            height: "8px", 
-                            borderRadius: "50%", 
-                            background: "#ef4444",
-                            marginLeft: "8px"
-                          }}></span>
+                            fontSize: '12px',
+                            backgroundColor: '#ef4444',
+                            color: 'white',
+                            padding: '2px 6px',
+                            borderRadius: '12px',
+                            minWidth: '20px',
+                            textAlign: 'center'
+                          }}>
+                            {allOrders.length}
+                          </span>
                         )}
                       </button>
 
@@ -478,6 +622,20 @@ export default function AccountPage() {
                         }}
                       >
                         ❤️ Favoris
+                        {wishlist.length > 0 && (
+                          <span style={{ 
+                            fontSize: '12px',
+                            backgroundColor: '#ef4444',
+                            color: 'white',
+                            padding: '2px 6px',
+                            borderRadius: '12px',
+                            minWidth: '20px',
+                            textAlign: 'center',
+                            marginLeft: '8px'
+                          }}>
+                            {wishlist.length}
+                          </span>
+                        )}
                       </button>
 
                       <button
@@ -504,7 +662,14 @@ export default function AccountPage() {
                     Bonjour, {session.user?.name || session.user?.email?.split('@')[0]}
                   </h2>
                   <p style={{ margin: '5px 0 0 0', color: '#64748b', fontSize: '14px' }}>
-                    Gérez vos commandes et favoris
+                    {allOrders.length > 0 ? (
+                      <>
+                        Vous avez <strong>{allOrders.length}</strong> commande{allOrders.length > 1 ? 's' : ''} •
+                        Dont <strong>{allOrders.filter(o => o.status === "En attente").length}</strong> en attente
+                      </>
+                    ) : (
+                      "Vous n'avez pas encore de commandes"
+                    )}
                   </p>
                 </div>
               </ProfileSection>
@@ -514,6 +679,17 @@ export default function AccountPage() {
             <Card id="favoris-section">
               <h3 style={{ fontSize: '18px', marginBottom: '15px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ color: '#ef4444' }}>❤️</span> Mes Favoris
+                {wishlist.length > 0 && (
+                  <span style={{ 
+                    fontSize: '12px', 
+                    backgroundColor: '#f1f5f9', 
+                    padding: '2px 8px', 
+                    borderRadius: '12px',
+                    marginLeft: '8px'
+                  }}>
+                    {wishlist.length} produit{wishlist.length > 1 ? 's' : ''}
+                  </span>
+                )}
               </h3>
               {!wishlist.length ? (
                 <p style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>
@@ -539,87 +715,120 @@ export default function AccountPage() {
               )}
             </Card>
 
-            {/* Carte Commandes Actives */}
+            {/* Carte Statistiques Commandes */}
             <Card>
               <h3 style={{ fontSize: '18px', marginBottom: '15px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>📦</span> Mes Commandes Actives
-                <span style={{ 
-                  fontSize: '12px', 
-                  backgroundColor: '#f1f5f9', 
-                  padding: '2px 8px', 
-                  borderRadius: '12px',
-                  marginLeft: '8px'
-                }}>
-                  {orders.length} commande{orders.length > 1 ? 's' : ''}
-                </span>
+                <span>📊</span> Vue d'ensemble de vos commandes
               </h3>
-              {!orders.length ? (
+              
+              {allOrders.length === 0 ? (
                 <p style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>
-                  Aucune commande en attente.
+                  Vous n'avez pas encore passé de commande.
+                  <br/>
+                  <Link href="/products" style={{ color: '#2563eb', textDecoration: 'underline' }}>
+                    Parcourir les produits
+                  </Link>
                 </p>
               ) : (
-                <OrdersTable>
-                  <thead>
-                    <tr>
-                      <TableHeader>Statut</TableHeader>
-                      <TableHeader>Date</TableHeader>
-                      <TableHeader>Produits</TableHeader>
-                      <TableHeader>Total</TableHeader>
-                      <TableHeader>Actions</TableHeader>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orders.map(order => {
-                      const timeInfo = calculateTimeRemaining(order.createdAt);
-                      return (
-                        <tr key={order._id}>
-                          <TableCell data-label="Statut">
-                            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                              <StatusBadge status={order.status}>
-                                {order.status}
-                              </StatusBadge>
-                              <TimeBadge style={{ backgroundColor: timeInfo.bg, color: timeInfo.color }}>
-                                <span style={{ fontSize: "10px" }}>⏳</span>
-                                {timeInfo.text}
-                              </TimeBadge>
-                            </div>
-                          </TableCell>
-                          <TableCell data-label="Date">
-                            {new Date(order.createdAt).toLocaleDateString('fr-FR', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric'
-                            })}
-                          </TableCell>
-                          <TableCell data-label="Produits">
-                            <ProductList>
-                              {order.line_items.map((item, i) => (
-                                <ProductItem key={i}>
-                                  <ProductImage 
-                                    src={item.image || item.price_data?.product_data?.images?.[0] || "/placeholder.png"} 
-                                    alt={item.name} 
-                                  />
-                                  <ProductText>
-                                    <p><b>{item.name || item.price_data?.product_data?.name || 'Produit'}</b></p>
-                                    <p>Qté: {item.quantity} | {item.price || item.price_data?.unit_amount/100 || 0} DT</p>
-                                  </ProductText>
-                                </ProductItem>
-                              ))}
-                            </ProductList>
-                          </TableCell>
-                          <TableCell data-label="Total">
-                            <strong>{order.total} DT</strong>
-                          </TableCell>
-                          <TableCell data-label="Actions">
-                            <CancelButton onClick={() => handleCancelOrder(order._id)}>
-                              Annuler la commande
-                            </CancelButton>
-                          </TableCell>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </OrdersTable>
+                <>
+                  {/* Statistiques rapides */}
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+                    gap: '15px',
+                    marginBottom: '20px'
+                  }}>
+                    <div style={{ 
+                      background: '#f8fafc', 
+                      padding: '15px', 
+                      borderRadius: '10px',
+                      textAlign: 'center',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b' }}>
+                        {allOrders.length}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '5px' }}>
+                        Total commandes
+                      </div>
+                    </div>
+                    
+                    <div style={{ 
+                      background: '#f0f9ff', 
+                      padding: '15px', 
+                      borderRadius: '10px',
+                      textAlign: 'center',
+                      border: '1px solid #bae6fd'
+                    }}>
+                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#0369a1' }}>
+                        {allOrders.filter(o => o.status === "En attente").length}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#0c4a6e', marginTop: '5px' }}>
+                        En attente
+                      </div>
+                    </div>
+                    
+                    <div style={{ 
+                      background: '#f0fdf4', 
+                      padding: '15px', 
+                      borderRadius: '10px',
+                      textAlign: 'center',
+                      border: '1px solid #bbf7d0'
+                    }}>
+                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#166534' }}>
+                        {allOrders.filter(o => o.status === "Prête").length}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#166534', marginTop: '5px' }}>
+                        Prêtes
+                      </div>
+                    </div>
+                    
+                    <div style={{ 
+                      background: '#fef2f2', 
+                      padding: '15px', 
+                      borderRadius: '10px',
+                      textAlign: 'center',
+                      border: '1px solid #fecaca'
+                    }}>
+                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#991b1b' }}>
+                        {allOrders.filter(o => o.status === "Annulée").length}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#991b1b', marginTop: '5px' }}>
+                        Annulées
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bouton pour voir toutes les commandes */}
+                  <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                    <button
+                      onClick={() => setActiveView('orders')}
+                      style={{
+                        padding: '12px 24px',
+                        background: '#2563eb',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}
+                    >
+                      📋 Voir toutes mes commandes
+                      <span style={{ 
+                        backgroundColor: 'rgba(255,255,255,0.2)', 
+                        padding: '2px 8px', 
+                        borderRadius: '12px',
+                        fontSize: '12px'
+                      }}>
+                        {allOrders.length}
+                      </span>
+                    </button>
+                  </div>
+                </>
               )}
             </Card>
           </>
