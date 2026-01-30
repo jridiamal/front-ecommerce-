@@ -46,7 +46,7 @@ const AvatarImage = styled.img`
   width: 70px;
   height: 70px;
   object-fit: cover;
-  border: ${props => (props.active ? "3px solid #2563eb" : "2px solid #e2e8f0")};
+  border: ${props => (props.$active ? "3px solid #2563eb" : "2px solid #e2e8f0")};
   cursor: pointer;
 `;
 
@@ -181,14 +181,14 @@ const StatusBadge = styled.span`
   font-weight: 700;
   display: inline-block;
   background:${props => 
-    props.status === "Prête" ? "#dcfce7" : 
-    props.status === "Livrée" ? "#d1fae5" :
-    props.status === "En attente" ? "#f1f5f9" : 
+    props.$status === "Prête" ? "#dcfce7" : 
+    props.$status === "Livrée" ? "#d1fae5" :
+    props.$status === "En attente" ? "#f1f5f9" : 
     "#fee2e2"};
   color:${props => 
-    props.status === "Prête" ? "#166534" : 
-    props.status === "Livrée" ? "#065f46" :
-    props.status === "En attente" ? "#475569" : 
+    props.$status === "Prête" ? "#166534" : 
+    props.$status === "Livrée" ? "#065f46" :
+    props.$status === "En attente" ? "#475569" : 
     "#991b1b"};
 `;
 
@@ -254,16 +254,16 @@ const FilterButtons = styled.div`
 const FilterButton = styled.button`
   padding: 6px 14px;
   border-radius: 20px;
-  border: 1px solid ${props => props.active ? '#2563eb' : '#cbd5e1'};
-  background: ${props => props.active ? '#dbeafe' : 'white'};
-  color: ${props => props.active ? '#1e40af' : '#475569'};
+  border: 1px solid ${props => props.$active ? '#2563eb' : '#cbd5e1'};
+  background: ${props => props.$active ? '#dbeafe' : 'white'};
+  color: ${props => props.$active ? '#1e40af' : '#475569'};
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
   &:hover {
-    background: ${props => props.active ? '#dbeafe' : '#f8fafc'};
-    border-color: ${props => props.active ? '#2563eb' : '#94a3b8'};
+    background: ${props => props.$active ? '#dbeafe' : '#f8fafc'};
+    border-color: ${props => props.$active ? '#2563eb' : '#94a3b8'};
   }
 `;
 
@@ -305,15 +305,15 @@ const ViewToggle = styled.div`
 const ViewToggleButton = styled.button`
   padding: 8px 16px;
   border-radius: 8px;
-  border: 1px solid ${props => props.active ? '#2563eb' : '#cbd5e1'};
-  background: ${props => props.active ? '#dbeafe' : 'white'};
-  color: ${props => props.active ? '#1e40af' : '#475569'};
+  border: 1px solid ${props => props.$active ? '#2563eb' : '#cbd5e1'};
+  background: ${props => props.$active ? '#dbeafe' : 'white'};
+  color: ${props => props.$active ? '#1e40af' : '#475569'};
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
   &:hover {
-    background: ${props => props.active ? '#dbeafe' : '#f8fafc'};
+    background: ${props => props.$active ? '#dbeafe' : '#f8fafc'};
   }
 `;
 
@@ -322,65 +322,84 @@ export default function AccountPage() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [allOrders, setAllOrders] = useState([]);
   const [wishlist, setWishlist] = useState([]);
-  const [activeView, setActiveView] = useState('orders'); // 'orders' ou 'favoris'
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'pending', 'ready', 'cancelled'
+  const [activeView, setActiveView] = useState('orders');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
 
   // Calculer le temps restant
   const calculateTimeRemaining = (createdAt) => {
-    const orderDate = new Date(createdAt);
-    const now = new Date();
-    const hoursDiff = Math.floor((now - orderDate) / (1000 * 60 * 60));
-    const hoursRemaining = 96 - hoursDiff;
+    if (!createdAt) return "Information non disponible";
     
-    if (hoursRemaining <= 0) {
-      return "Prête aujourd'hui";
-    } else if (hoursRemaining <= 24) {
-      return "Prête demain";
-    } else {
-      const days = Math.ceil(hoursRemaining / 24);
-      return `Prête dans ${days} jour${days > 1 ? 's' : ''}`;
+    try {
+      const orderDate = new Date(createdAt);
+      if (isNaN(orderDate.getTime())) return "Date invalide";
+      
+      const now = new Date();
+      const hoursDiff = Math.floor((now - orderDate) / (1000 * 60 * 60));
+      const hoursRemaining = 96 - hoursDiff;
+      
+      if (hoursRemaining <= 0) {
+        return "Prête aujourd'hui";
+      } else if (hoursRemaining <= 24) {
+        return "Prête demain";
+      } else {
+        const days = Math.ceil(hoursRemaining / 24);
+        return `Prête dans ${days} jour${days > 1 ? 's' : ''}`;
+      }
+    } catch (error) {
+      console.error("Erreur calcul temps:", error);
+      return "Information indisponible";
     }
   };
 
   // Charger les données
   useEffect(() => {
-    if (status === "authenticated") {
-      // Commandes
-      fetch("/api/orders")
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data)) {
-            setAllOrders(data);
+    const loadData = async () => {
+      if (status === "authenticated") {
+        setLoading(true);
+        try {
+          // Charger les commandes
+          const ordersRes = await fetch("/api/orders");
+          if (ordersRes.ok) {
+            const ordersData = await ordersRes.json();
+            if (Array.isArray(ordersData)) {
+              setAllOrders(ordersData);
+            }
           }
-        })
-        .catch(err => {
-          console.error("Erreur commandes:", err);
-          toast.error("Erreur chargement commandes");
-        });
 
-      // Wishlist
-      fetch("/api/wishlist")
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data)) {
-            // S'assurer que chaque item a bien un produit
-            const validWishlist = data.filter(item => item.product && item.product._id);
-            setWishlist(validWishlist);
+          // Charger la wishlist
+          const wishlistRes = await fetch("/api/wishlist");
+          if (wishlistRes.ok) {
+            const wishlistData = await wishlistRes.json();
+            if (Array.isArray(wishlistData)) {
+              const validWishlist = wishlistData.filter(item => item.product && item.product._id);
+              setWishlist(validWishlist);
+            }
           }
-        })
-        .catch(err => {
-          console.error("Erreur wishlist:", err);
-        });
-    }
+        } catch (err) {
+          console.error("Erreur chargement données:", err);
+          toast.error("Erreur lors du chargement des données");
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, [status]);
 
   // Filtrer les commandes
   const getFilteredOrders = () => {
+    if (!Array.isArray(allOrders)) return [];
+    
     if (statusFilter === 'all') return allOrders;
     if (statusFilter === 'pending') return allOrders.filter(o => o.status === "En attente");
     if (statusFilter === 'ready') return allOrders.filter(o => o.status === "Prête");
     if (statusFilter === 'cancelled') return allOrders.filter(o => o.status === "Annulée");
     if (statusFilter === 'delivered') return allOrders.filter(o => o.status === "Livrée");
+    
     return allOrders;
   };
 
@@ -388,39 +407,47 @@ export default function AccountPage() {
 
   // Annuler une commande
   const handleCancelOrder = async (orderId) => {
-    if (!window.confirm("Annuler cette commande ?")) return;
+    if (!window.confirm("Êtes-vous sûr de vouloir annuler cette commande ?")) return;
+    
     try {
       const res = await fetch("/api/orders", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId })
       });
+      
       if (res.ok) {
-        toast.success("Commande annulée");
+        toast.success("Commande annulée avec succès");
         setAllOrders(prev => prev.map(order => 
           order._id === orderId ? { ...order, status: "Annulée" } : order
         ));
       } else {
-        toast.error("Erreur annulation");
+        const error = await res.json();
+        toast.error(error.error || "Erreur lors de l'annulation");
       }
     } catch (err) { 
+      console.error("Erreur annulation:", err);
       toast.error("Erreur réseau"); 
     }
   };
 
   // Supprimer l'historique
   const handleDeleteHistory = async () => {
-    if (!window.confirm("Supprimer l'historique (commandes Prête/Annulée/Livrée) ?")) return;
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer l'historique des commandes terminées ?")) return;
+    
     try {
       const res = await fetch("/api/historique", { method: "DELETE" });
+      
       if (res.ok) {
         // Garder seulement les commandes "En attente"
         setAllOrders(prev => prev.filter(order => order.status === "En attente"));
-        toast.success("Historique supprimé");
+        toast.success("Historique supprimé avec succès");
       } else {
-        toast.error("Erreur suppression");
+        const error = await res.json();
+        toast.error(error.error || "Erreur lors de la suppression");
       }
     } catch (err) { 
+      console.error("Erreur suppression historique:", err);
       toast.error("Erreur réseau"); 
     }
   };
@@ -431,42 +458,91 @@ export default function AccountPage() {
       const res = await fetch(`/api/wishlist?productId=${productId}`, {
         method: "DELETE",
       });
+      
       if (res.ok) {
         setWishlist(prev => prev.filter(item => item.product._id !== productId));
-        toast.success("Retiré des favoris");
+        toast.success("Produit retiré des favoris");
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Erreur lors de la suppression");
       }
     } catch (err) {
-      toast.error("Erreur suppression");
+      console.error("Erreur suppression favori:", err);
+      toast.error("Erreur lors de la suppression");
     }
   };
 
+  // Fermer le dropdown quand on clique ailleurs
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isDropdownOpen && !event.target.closest('.avatar-wrapper')) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [isDropdownOpen]);
+
   // État de chargement
-  if (status === "loading") return <><Header /><Container>Chargement...</Container></>;
-  
+  if (status === "loading" || loading) {
+    return (
+      <>
+        <Header />
+        <Container>
+          <Card style={{ textAlign: 'center', padding: '40px' }}>
+            <div style={{ fontSize: '24px', marginBottom: '16px' }}>⏳</div>
+            <p>Chargement de votre compte...</p>
+          </Card>
+        </Container>
+      </>
+    );
+  }
+
   // Non connecté
-  if (!session) return (
-    <><Header /><Container>
-      <Card style={{ textAlign: 'center' }}>
-        <h2 style={{ marginBottom: '20px' }}>Mon Compte</h2>
-        <button 
-          onClick={() => signIn("google")} 
-          style={{ 
-            padding: '12px 24px', 
-            cursor: 'pointer',
-            background: '#4285F4',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '16px',
-            fontWeight: '600',
-            margin: '10px 0'
-          }}
-        >
-          Se connecter avec Google
-        </button>
-      </Card>
-    </Container></>
-  );
+  if (!session) {
+    return (
+      <>
+        <Header />
+        <Container>
+          <Card style={{ textAlign: 'center', maxWidth: '500px', margin: '50px auto' }}>
+            <h2 style={{ marginBottom: '20px', color: '#1e293b' }}>Mon Compte</h2>
+            <p style={{ marginBottom: '30px', color: '#64748b' }}>
+              Connectez-vous pour accéder à vos commandes et favoris
+            </p>
+            <button 
+              onClick={() => signIn("google")} 
+              style={{ 
+                padding: '12px 24px', 
+                cursor: 'pointer',
+                background: '#4285F4',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                margin: '10px 0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px',
+                width: '100%',
+                maxWidth: '300px',
+                margin: '0 auto'
+              }}
+            >
+              <img 
+                src="https://www.google.com/favicon.ico" 
+                alt="Google" 
+                style={{ width: '20px', height: '20px' }}
+              />
+              Se connecter avec Google
+            </button>
+          </Card>
+        </Container>
+      </>
+    );
+  }
 
   return (
     <>
@@ -475,16 +551,21 @@ export default function AccountPage() {
         {/* Carte Profil */}
         <Card>
           <ProfileSection>
-            <AvatarWrapper onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
+            <AvatarWrapper className="avatar-wrapper" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
               <AvatarImage 
                 src={session.user?.image || "/avatar.png"} 
-                active={isDropdownOpen} 
+                $active={isDropdownOpen} 
                 alt="Avatar"
+                onError={(e) => {
+                  e.target.src = "/avatar.png";
+                }}
               />
               {isDropdownOpen && (
                 <DropdownMenu>
                   <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Connecté en tant que</p>
-                  <p style={{ margin: '4px 0 12px 0', fontWeight: 700 }}>{session.user?.email}</p>
+                  <p style={{ margin: '4px 0 12px 0', fontWeight: 700, fontSize: '14px' }}>
+                    {session.user?.email}
+                  </p>
                   
                   <button
                     onClick={() => {
@@ -557,14 +638,20 @@ export default function AccountPage() {
                     style={{ 
                       width: '100%', 
                       padding: '10px', 
-                      background: '#ef4444', 
-                      color: 'white', 
-                      border: 'none', 
+                      background: '#f1f5f9', 
+                      color: '#64748b', 
+                      border: '1px solid #e2e8f0', 
                       borderRadius: '8px', 
                       cursor: 'pointer',
                       fontWeight: '600',
                       fontSize: '14px',
-                      marginTop: '10px'
+                      marginTop: '10px',
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        background: '#fee2e2',
+                        borderColor: '#fecaca',
+                        color: '#991b1b'
+                      }
                     }}
                   >
                     Se déconnecter
@@ -603,34 +690,35 @@ export default function AccountPage() {
             {/* Filtres */}
             <FilterButtons>
               <FilterButton 
-                active={statusFilter === 'all'}
+                $active={statusFilter === 'all'}
                 onClick={() => setStatusFilter('all')}
               >
                 Toutes ({allOrders.length})
               </FilterButton>
               <FilterButton 
-                active={statusFilter === 'pending'}
+                $active={statusFilter === 'pending'}
                 onClick={() => setStatusFilter('pending')}
               >
                 En attente ({allOrders.filter(o => o.status === "En attente").length})
               </FilterButton>
               <FilterButton 
-                active={statusFilter === 'ready'}
+                $active={statusFilter === 'ready'}
                 onClick={() => setStatusFilter('ready')}
               >
                 Prêtes ({allOrders.filter(o => o.status === "Prête").length})
               </FilterButton>
+              
               <FilterButton 
-                active={statusFilter === 'delivered'}
-                onClick={() => setStatusFilter('delivered')}
-              >
-                Livrées ({allOrders.filter(o => o.status === "Livrée").length})
-              </FilterButton>
-              <FilterButton 
-                active={statusFilter === 'cancelled'}
+                $active={statusFilter === 'cancelled'}
                 onClick={() => setStatusFilter('cancelled')}
               >
                 Annulées ({allOrders.filter(o => o.status === "Annulée").length})
+              </FilterButton>
+              <FilterButton 
+                $active={statusFilter === 'delivered'}
+                onClick={() => setStatusFilter('delivered')}
+              >
+                Livrées ({allOrders.filter(o => o.status === "Livrée").length})
               </FilterButton>
             </FilterButtons>
 
@@ -701,22 +789,24 @@ export default function AccountPage() {
                             color: '#64748b',
                             fontWeight: '500'
                           }}>
-                            #{order._id.toString().slice(-8)}
+                            #{order._id?.toString().slice(-8) || 'N/A'}
                           </span>
                         </TableCell>
                         <TableCell data-label="Date">
-                          {new Date(order.createdAt).toLocaleDateString('fr-FR', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric'
-                          })}
+                          {order.createdAt ? (
+                            new Date(order.createdAt).toLocaleDateString('fr-FR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric'
+                            })
+                          ) : 'Date inconnue'}
                         </TableCell>
                         <TableCell data-label="Statut">
                           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                            <StatusBadge status={order.status}>
-                              {order.status}
+                            <StatusBadge $status={order.status || "Inconnu"}>
+                              {order.status || "Inconnu"}
                             </StatusBadge>
-                            {order.status === "En attente" && (
+                            {order.status === "En attente" && timeInfo && (
                               <TimeBadge>
                                 <span style={{ fontSize: "10px" }}>⏳</span>
                                 {timeInfo}
@@ -726,22 +816,29 @@ export default function AccountPage() {
                         </TableCell>
                         <TableCell data-label="Produits">
                           <ProductList>
-                            {order.line_items.map((item, i) => (
-                              <ProductItem key={i}>
-                                <ProductImage 
-                                  src={item.image || item.price_data?.product_data?.images?.[0] || "/placeholder.png"} 
-                                  alt={item.name} 
-                                />
-                                <ProductText>
-                                  <p><b>{item.name || item.price_data?.product_data?.name || 'Produit'}</b></p>
-                                  <p>Qté: {item.quantity} × {item.price || item.price_data?.unit_amount/100 || 0} DT</p>
-                                </ProductText>
-                              </ProductItem>
-                            ))}
+                            {Array.isArray(order.line_items) && order.line_items.length > 0 ? (
+                              order.line_items.map((item, i) => (
+                                <ProductItem key={i}>
+                                  <ProductImage 
+                                    src={item.image || item.price_data?.product_data?.images?.[0] || "/placeholder.png"} 
+                                    alt={item.name} 
+                                    onError={(e) => {
+                                      e.target.src = "/placeholder.png";
+                                    }}
+                                  />
+                                  <ProductText>
+                                    <p><b>{item.name || item.price_data?.product_data?.name || 'Produit'}</b></p>
+                                    <p>Qté: {item.quantity} × {item.price || (item.price_data?.unit_amount/100) || 0} DT</p>
+                                  </ProductText>
+                                </ProductItem>
+                              ))
+                            ) : (
+                              <p style={{ fontSize: '12px', color: '#64748b' }}>Aucun produit</p>
+                            )}
                           </ProductList>
                         </TableCell>
                         <TableCell data-label="Total">
-                          <strong style={{ fontSize: '15px' }}>{order.total} DT</strong>
+                          <strong style={{ fontSize: '15px' }}>{order.total || 0} DT</strong>
                         </TableCell>
                         <TableCell data-label="Actions">
                           {order.status === "En attente" ? (
@@ -814,7 +911,9 @@ export default function AccountPage() {
               <EmptyState>
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>❤️</div>
                 <h4 style={{ marginBottom: '8px', color: '#334155' }}>Aucun favori</h4>
-                <p style={{ marginBottom: '20px' }}>Ajoutez des produits à vos favoris pour les retrouver facilement.</p>
+                <p style={{ marginBottom: '20px' }}>
+                  Ajoutez des produits à vos favoris pour les retrouver facilement.
+                </p>
                 <Link href="/products">
                   <button style={{
                     padding: '10px 20px',
@@ -842,7 +941,7 @@ export default function AccountPage() {
                             e.target.src = "/placeholder.png";
                           }}
                         />
-                        <WishItemTitle>{item.product.title}</WishItemTitle>
+                        <WishItemTitle>{item.product.title || "Produit sans nom"}</WishItemTitle>
                         {item.product.price && (
                           <WishItemPrice>{item.product.price} DT</WishItemPrice>
                         )}
@@ -868,7 +967,13 @@ export default function AccountPage() {
                         justifyContent: 'center',
                         cursor: 'pointer',
                         fontSize: '14px',
-                        color: '#ef4444'
+                        color: '#ef4444',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          background: '#fee2e2',
+                          transform: 'scale(1.1)'
+                        }
                       }}
                       title="Retirer des favoris"
                     >
