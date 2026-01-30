@@ -167,7 +167,7 @@ export default function Featured({ product }) {
           </Column>
 
           <Column>
-            <img src="/13.png" alt="Librairie Frères Ben Marzouk" />
+            <img src="/45.png" alt="Librairie Frères Ben Marzouk" />
           </Column>
         </ColumnsWrapper>
       </Center>
