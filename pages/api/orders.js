@@ -17,7 +17,65 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     try {
       const orders = await Order.find({ email: userEmail }).sort({ createdAt: -1 });
-      return res.status(200).json(orders);
+      
+      // Mettre à jour automatiquement le statut après 4 jours (96 heures)
+      const updatedOrders = await Promise.all(orders.map(async (order) => {
+        if (order.status === "En attente") {
+          const orderDate = new Date(order.createdAt);
+          const now = new Date();
+          const hoursDiff = Math.floor((now - orderDate) / (1000 * 60 * 60));
+          
+          // Après 4 jours (96 heures), changer le statut à "Prête"
+          if (hoursDiff >= 96) {
+            order.status = "Prête";
+            await order.save();
+            
+            // Envoyer un email de notification au client
+            try {
+              await sendEmail({
+                to: userEmail,
+                subject: "🎉 Votre commande est prête !",
+                html: `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+                    <h2 style="color: #166534; text-align: center;">✅ Votre commande est prête !</h2>
+                    <p>Bonjour <strong>${order.name}</strong>,</p>
+                    <p>Nous sommes heureux de vous informer que votre commande est maintenant prête.</p>
+                    
+                    <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                      <p><strong>📋 Détails de la commande :</strong></p>
+                      <p><strong>Numéro :</strong> #${order._id.toString().slice(-8)}</p>
+                      <p><strong>Date :</strong> ${new Date(order.createdAt).toLocaleDateString('fr-FR')}</p>
+                      <p><strong>Total :</strong> <span style="color: #166534; font-weight: bold;">${order.total} DT</span></p>
+                    </div>
+                    
+                    <div style="background-color: #f0f9ff; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                      <p><strong>📦 Articles commandés :</strong></p>
+                      <ul style="padding-left: 20px;">
+                        ${order.line_items.map(item => `
+                          <li>${item.quantity}x ${item.price_data?.product_data?.name || item.name || 'Produit'} - ${item.price_data?.unit_amount/100 || item.price || 0} DT</li>
+                        `).join('')}
+                      </ul>
+                    </div>
+                    
+                    <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;" />
+                    
+                    <p style="text-align: center; color: #64748b; font-size: 14px;">
+                      Merci pour votre confiance,<br/>
+                      <strong>Société FBM</strong>
+                    </p>
+                  </div>
+                `,
+              });
+              console.log(`📧 Email de commande prête envoyé à ${userEmail}`);
+            } catch (emailError) {
+              console.error("⚠️ Erreur d'email commande prête:", emailError.message);
+            }
+          }
+        }
+        return order;
+      }));
+      
+      return res.status(200).json(updatedOrders);
     } catch (err) {
       console.error("Erreur GET orders:", err);
       return res.status(500).json({ error: "Erreur GET" });
@@ -53,31 +111,52 @@ export default async function handler(req, res) {
       // Envoyer un email à l'admin (societefbm484@gmail.com)
       try {
         await sendEmail({
-          to: "societefbm484@gmail.com", // Email de l'admin
-          subject: "Nouvelle commande client",
+          to: "societefbm484@gmail.com",
+          subject: "🚨 NOUVELLE COMMANDE - Société FBM",
           html: `
-            <h2>🚨 NOUVELLE COMMANDE</h2>
-            <p><strong>Client :</strong> ${name}</p>
-            <p><strong>Email :</strong> ${userEmail}</p>
-            <p><strong>Téléphone :</strong> ${phone}</p>
-            <p><strong>Adresse :</strong> ${streetAddress}, ${country}</p>
-            <p><strong>Total :</strong> ${total} DT</p>
-            <p><strong>ID Commande :</strong> ${newOrder._id}</p>
-            <hr/>
-            <p><strong>Articles :</strong></p>
-            <ul>
-              ${line_items.map(item => `
-                <li>${item.quantity}x ${item.price_data?.product_data?.name || 'Produit'}: ${item.price_data?.unit_amount/100 || 0} DT</li>
-              `).join('')}
-            </ul>
-            <hr/>
-            <p>Société FBM</p>
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #fff7ed;">
+              <h2 style="color: #ea580c; text-align: center;">🚨 NOUVELLE COMMANDE</h2>
+              
+              <div style="background-color: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <p><strong>👤 Client :</strong> ${name}</p>
+                <p><strong>📧 Email :</strong> ${userEmail}</p>
+                <p><strong>📱 Téléphone :</strong> ${phone}</p>
+                <p><strong>📍 Adresse :</strong> ${streetAddress}, ${country}</p>
+                <p><strong>💰 Total :</strong> <span style="color: #166534; font-weight: bold;">${total} DT</span></p>
+                <p><strong>🔢 ID Commande :</strong> ${newOrder._id}</p>
+              </div>
+              
+              <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <p><strong>🛒 Articles :</strong></p>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="background-color: #e2e8f0;">
+                      <th style="padding: 8px; text-align: left; border: 1px solid #cbd5e1;">Produit</th>
+                      <th style="padding: 8px; text-align: left; border: 1px solid #cbd5e1;">Quantité</th>
+                      <th style="padding: 8px; text-align: left; border: 1px solid #cbd5e1;">Prix</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${line_items.map(item => `
+                      <tr>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0;">${item.price_data?.product_data?.name || 'Produit'}</td>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">${item.quantity}</td>
+                        <td style="padding: 8px; border: 1px solid #e2e8f0;">${item.price_data?.unit_amount/100 || 0} DT</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+              
+              <p style="text-align: center; color: #64748b; font-size: 14px; margin-top: 20px;">
+                Cette commande sera automatiquement marquée comme "Prête" après 4 jours.
+              </p>
+            </div>
           `,
         });
         console.log("📧 Email envoyé à l'admin");
       } catch (emailError) {
         console.error("⚠️ Erreur d'email:", emailError.message);
-        // Continuer même si l'email échoue
       }
 
       return res.status(201).json(newOrder);
