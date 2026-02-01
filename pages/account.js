@@ -174,7 +174,6 @@ const ProductImage = styled.img`
 
 const ProductText = styled.div`p{margin:0; font-size:13px;color:#374151;line-height:1.2;}`;
 
-// MODIFICATION ICI : Remplacé "Livrée" par "Récupérée"
 const StatusBadge = styled.span`
   padding: 4px 12px;
   border-radius: 20px;
@@ -183,12 +182,12 @@ const StatusBadge = styled.span`
   display: inline-block;
   background:${props => 
     props.$status === "Prête" ? "#dcfce7" : 
-    props.$status === "Récupérée" ? "#dbeafe" : // CHANGÉ ICI
+    props.$status === "Livrée" ? "#d1fae5" :
     props.$status === "En attente" ? "#f1f5f9" : 
     "#fee2e2"};
   color:${props => 
     props.$status === "Prête" ? "#166534" : 
-    props.$status === "Récupérée" ? "#1e40af" : // CHANGÉ ICI
+    props.$status === "Livrée" ? "#065f46" :
     props.$status === "En attente" ? "#475569" : 
     "#991b1b"};
 `;
@@ -359,8 +358,8 @@ export default function AccountPage() {
       if (status === "authenticated") {
         setLoading(true);
         try {
-          // Charger les commandes du client
-          const ordersRes = await fetch("/api/customer/orders");
+          // Charger les commandes
+          const ordersRes = await fetch("/api/orders");
           if (ordersRes.ok) {
             const ordersData = await ordersRes.json();
             if (Array.isArray(ordersData)) {
@@ -368,20 +367,14 @@ export default function AccountPage() {
             }
           }
 
-          // Charger la wishlist CORRECTEMENT
+          // Charger la wishlist
           const wishlistRes = await fetch("/api/wishlist");
           if (wishlistRes.ok) {
             const wishlistData = await wishlistRes.json();
-            console.log("Wishlist data:", wishlistData); // Pour debug
             if (Array.isArray(wishlistData)) {
-              // Filtrer les favoris valides
-              const validWishlist = wishlistData.filter(item => 
-                item && item.product && item.product._id
-              );
+              const validWishlist = wishlistData.filter(item => item.product && item.product._id);
               setWishlist(validWishlist);
             }
-          } else {
-            console.error("Erreur API wishlist:", await wishlistRes.text());
           }
         } catch (err) {
           console.error("Erreur chargement données:", err);
@@ -397,7 +390,7 @@ export default function AccountPage() {
     loadData();
   }, [status]);
 
-  // MODIFICATION ICI : Remplacé "delivered" par "pickedup"
+  // Filtrer les commandes
   const getFilteredOrders = () => {
     if (!Array.isArray(allOrders)) return [];
     
@@ -405,7 +398,7 @@ export default function AccountPage() {
     if (statusFilter === 'pending') return allOrders.filter(o => o.status === "En attente");
     if (statusFilter === 'ready') return allOrders.filter(o => o.status === "Prête");
     if (statusFilter === 'cancelled') return allOrders.filter(o => o.status === "Annulée");
-    if (statusFilter === 'pickedup') return allOrders.filter(o => o.status === "Récupérée"); // CHANGÉ ICI
+    if (statusFilter === 'delivered') return allOrders.filter(o => o.status === "Livrée");
     
     return allOrders;
   };
@@ -417,7 +410,7 @@ export default function AccountPage() {
     if (!window.confirm("Êtes-vous sûr de vouloir annuler cette commande ?")) return;
     
     try {
-      const res = await fetch("/api/customer/orders", {
+      const res = await fetch("/api/orders", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId })
@@ -443,13 +436,11 @@ export default function AccountPage() {
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer l'historique des commandes terminées ?")) return;
     
     try {
-      const res = await fetch("/api/customer/historique", { method: "DELETE" });
+      const res = await fetch("/api/historique", { method: "DELETE" });
       
       if (res.ok) {
         // Garder seulement les commandes "En attente"
-        setAllOrders(prev => prev.filter(order => 
-          order.status === "En attente"
-        ));
+        setAllOrders(prev => prev.filter(order => order.status === "En attente"));
         toast.success("Historique supprimé avec succès");
       } else {
         const error = await res.json();
@@ -689,14 +680,14 @@ export default function AccountPage() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: '20px' }}>
               <h3 style={{ fontSize: "20px", margin: 0, color: '#1e293b' }}>📋 Mes Commandes</h3>
               
-              {allOrders.filter(o => ["Prête", "Annulée", "Récupérée"].includes(o.status)).length > 0 && (
+              {allOrders.filter(o => ["Prête", "Annulée", "Livrée"].includes(o.status)).length > 0 && (
                 <DeleteHistoryButton onClick={handleDeleteHistory}>
                   🗑️ Supprimer l'historique
                 </DeleteHistoryButton>
               )}
             </div>
 
-            {/* MODIFICATION ICI : Remplacé "Livrées" par "Récupérées" */}
+            {/* Filtres */}
             <FilterButtons>
               <FilterButton 
                 $active={statusFilter === 'all'}
@@ -724,10 +715,10 @@ export default function AccountPage() {
                 Annulées ({allOrders.filter(o => o.status === "Annulée").length})
               </FilterButton>
               <FilterButton 
-                $active={statusFilter === 'pickedup'} // CHANGÉ ICI
-                onClick={() => setStatusFilter('pickedup')}
+                $active={statusFilter === 'delivered'}
+                onClick={() => setStatusFilter('delivered')}
               >
-                Récupérées ({allOrders.filter(o => o.status === "Récupérée").length}) // CHANGÉ ICI
+                Livrées ({allOrders.filter(o => o.status === "Livrée").length})
               </FilterButton>
             </FilterButtons>
 
@@ -813,7 +804,7 @@ export default function AccountPage() {
                         <TableCell data-label="Statut">
                           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                             <StatusBadge $status={order.status || "Inconnu"}>
-                              {order.status === "Récupérée" ? "✅ Récupérée" : order.status || "Inconnu"}
+                              {order.status || "Inconnu"}
                             </StatusBadge>
                             {order.status === "En attente" && timeInfo && (
                               <TimeBadge>
@@ -865,67 +856,29 @@ export default function AccountPage() {
                                 fontSize: '12px',
                                 fontWeight: '600',
                                 cursor: 'pointer',
-                                width: '100%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '8px'
+                                width: '100%'
                               }}
-                              onClick={() => {
-                                toast.info(
-                                  <div>
-                                    <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-                                      🏪 Votre commande est prête !
-                                    </div>
-                                    <div style={{ fontSize: '12px' }}>
-                                      Présentez-vous au magasin avec votre numéro de commande
-                                    </div>
-                                    <div style={{ fontSize: '11px', color: '#64748b', marginTop: '8px' }}>
-                                      N°: #{order._id?.toString().slice(-8) || ''}
-                                    </div>
-                                  </div>,
-                                  { autoClose: 8000 }
-                                );
-                              }}
+                              onClick={() => toast.info("Votre commande est prête pour récupération")}
                             >
-                              <span>🏪</span>
                               À récupérer
                             </button>
-                          ) : order.status === "Récupérée" ? ( // CHANGÉ ICI
-                            <div style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: '8px',
-                              padding: '8px 12px',
-                              backgroundColor: '#dbeafe',
-                              borderRadius: '8px',
-                              border: '1px solid #93c5fd'
-                            }}>
-                              <span style={{ fontSize: '16px' }}>✅</span>
-                              <div>
-                                <div style={{ fontSize: '12px', fontWeight: '600', color: '#1e40af' }}>
-                                  Commande récupérée
-                                </div>
-                                {order.completedAt && (
-                                  <div style={{ fontSize: '10px', color: '#3b82f6' }}>
-                                    {new Date(order.completedAt).toLocaleDateString('fr-FR')}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
                           ) : order.status === "Annulée" ? (
                             <span style={{ 
                               fontSize: '12px', 
                               color: '#991b1b',
-                              fontWeight: '600',
-                              padding: '8px 12px',
-                              backgroundColor: '#fee2e2',
-                              borderRadius: '8px',
-                              display: 'inline-block'
+                              fontWeight: '600'
                             }}>
                               ❌ Annulée
                             </span>
-                          ) : null}
+                          ) : (
+                            <span style={{ 
+                              fontSize: '12px', 
+                              color: '#065f46',
+                              fontWeight: '600'
+                            }}>
+                              ✅ Livrée
+                            </span>
+                          )}
                         </TableCell>
                       </tr>
                     );
@@ -935,7 +888,7 @@ export default function AccountPage() {
             )}
           </Card>
         ) : (
-          /* Vue Favoris - CORRIGÉE */
+          /* Vue Favoris */
           <Card>
             <h3 style={{ fontSize: "20px", margin: '0 0 20px 0', color: '#1e293b' }}>
               ❤️ Mes Favoris
@@ -978,18 +931,18 @@ export default function AccountPage() {
             ) : (
               <WishlistGrid>
                 {wishlist.map(item => (
-                  <div key={item._id || item.product?._id} style={{ position: 'relative' }}>
-                    <Link href={`/product/${item.product?._id}`} style={{ textDecoration: 'none' }}>
+                  <div key={item._id} style={{ position: 'relative' }}>
+                    <Link href={`/product/${item.product._id}`} style={{ textDecoration: 'none' }}>
                       <WishItem>
                         <WishItemImage 
-                          src={item.product?.images?.[0] || "/placeholder.png"} 
-                          alt={item.product?.title || "Produit"}
+                          src={item.product.images?.[0] || "/placeholder.png"} 
+                          alt={item.product.title}
                           onError={(e) => {
                             e.target.src = "/placeholder.png";
                           }}
                         />
-                        <WishItemTitle>{item.product?.title || "Produit sans nom"}</WishItemTitle>
-                        {item.product?.price && (
+                        <WishItemTitle>{item.product.title || "Produit sans nom"}</WishItemTitle>
+                        {item.product.price && (
                           <WishItemPrice>{item.product.price} DT</WishItemPrice>
                         )}
                       </WishItem>
@@ -998,9 +951,7 @@ export default function AccountPage() {
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        if (item.product?._id) {
-                          handleRemoveWishlistItem(item.product._id);
-                        }
+                        handleRemoveWishlistItem(item.product._id);
                       }}
                       style={{
                         position: 'absolute',
@@ -1043,7 +994,8 @@ export default function AccountPage() {
           closeOnClick
           rtl={false}
           pauseOnFocusLoss
-          draggable   
+          draggable
+          pauseOnHover
           theme="light"
         />
       </Container>
