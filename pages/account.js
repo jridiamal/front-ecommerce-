@@ -718,7 +718,7 @@ export default function AccountPage() {
                 $active={statusFilter === 'delivered'}
                 onClick={() => setStatusFilter('delivered')}
               >
-                Livrées ({allOrders.filter(o => o.status === "Livrée").length})
+                Récupérée ({allOrders.filter(o => o.status === "Récupérée").length})
               </FilterButton>
             </FilterButtons>
 
