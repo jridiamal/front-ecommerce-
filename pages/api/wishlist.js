@@ -1,6 +1,6 @@
 // /api/wishlist.js
 import { mongooseConnect } from "@/lib/mongoose";
-import Wishlist from "@/models/Wishlist";
+import Wishlist from "@/models/WishedProduct";
 import Product from "@/models/Product"; // IMPORTANT: Ajouter cette importation
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
