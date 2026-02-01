@@ -1043,8 +1043,7 @@ export default function AccountPage() {
           closeOnClick
           rtl={false}
           pauseOnFocusLoss
-          draggable
-          pauseOnHover
+          draggable   
           theme="light"
         />
       </Container>
