@@ -1,7 +1,8 @@
+// /api/customer/historique.js
 import { mongooseConnect } from "@/lib/mongoose";
 import { Order } from "@/models/Order";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "./auth/[...nextauth]";
+import { authOptions } from "../auth/[...nextauth]";
 
 export default async function handler(req, res) {
   await mongooseConnect();
@@ -12,34 +13,19 @@ export default async function handler(req, res) {
   }
   const userEmail = session.user.email;
 
-  if (req.method === "GET") {
-    try {
-      // Récupérer uniquement les commandes avec statut historique
-      const historique = await Order.find({
-        email: userEmail,
-        status: { $in: ["Annulée", "Livrée", "Prête"] },
-      }).sort({ createdAt: -1 });
-
-      return res.status(200).json(historique);
-    } catch (err) {
-      console.error("Erreur GET historique:", err);
-      return res.status(500).json({ error: "Erreur GET historique" });
-    }
-  }
-
   // ---------------- DELETE ALL -----------------
   if (req.method === "DELETE") {
     try {
-      // Marquer les commandes historiques comme "Supprimée" au lieu de les supprimer
-      await Order.updateMany(
-        { 
-          email: userEmail, 
-          status: { $in: ["Annulée", "Livrée", "Prête"] } 
-        },
-        { $set: { status: "Supprimée" } }
-      );
+      // Supprimer les commandes terminées (Récupérée, Annulée, Prête)
+      const result = await Order.deleteMany({
+        email: userEmail,
+        status: { $in: ["Récupérée", "Annulée", "Prête"] }
+      });
 
-      return res.status(200).json({ message: "Historique marqué comme supprimé" });
+      return res.status(200).json({ 
+        message: "Historique supprimé",
+        deletedCount: result.deletedCount 
+      });
     } catch (err) {
       console.error("Erreur DELETE historique:", err);
       return res.status(500).json({ error: "Erreur DELETE historique" });
