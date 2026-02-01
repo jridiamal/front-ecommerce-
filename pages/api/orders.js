@@ -1,3 +1,4 @@
+// api/order/client.js
 import { mongooseConnect } from "@/lib/mongoose";
 import { Order } from "@/models/Order";
 import { getServerSession } from "next-auth/next";
@@ -30,6 +31,9 @@ export default async function handler(req, res) {
             order.status = "Prête";
             await order.save();
             
+            // Générer le numéro de commande
+            const orderNumber = `#${order._id.toString().slice(-8)}s${Math.floor(Math.random() * 9) + 1}`;
+            
             // Envoyer un email de notification au client
             try {
               await sendEmail({
@@ -43,7 +47,7 @@ export default async function handler(req, res) {
                     
                     <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0;">
                       <p><strong>📋 Détails de la commande :</strong></p>
-                      <p><strong>Numéro :</strong> #${order._id.toString().slice(-8)}</p>
+                      <p><strong>Numéro :</strong> ${orderNumber}</p>
                       <p><strong>Date :</strong> ${new Date(order.createdAt).toLocaleDateString('fr-FR')}</p>
                       <p><strong>Total :</strong> <span style="color: #166534; font-weight: bold;">${order.total} DT</span></p>
                     </div>
@@ -75,7 +79,16 @@ export default async function handler(req, res) {
         return order;
       }));
       
-      return res.status(200).json(updatedOrders);
+      // Ajouter le numéro de commande formaté à la réponse
+      const ordersWithFormattedId = updatedOrders.map(order => {
+        const orderNumber = `#${order._id.toString().slice(-8)}s${Math.floor(Math.random() * 9) + 1}`;
+        return {
+          ...order._doc,
+          orderNumber: orderNumber
+        };
+      });
+      
+      return res.status(200).json(ordersWithFormattedId);
     } catch (err) {
       console.error("Erreur GET orders:", err);
       return res.status(500).json({ error: "Erreur GET" });
@@ -106,18 +119,22 @@ export default async function handler(req, res) {
         status: "En attente",
       });
 
-      console.log("✅ Commande créée:", newOrder._id);
+      // Générer le numéro de commande formaté
+      const orderNumber = `#${newOrder._id.toString().slice(-8)}s${Math.floor(Math.random() * 9) + 1}`;
+      
+      console.log("✅ Commande créée:", orderNumber);
 
       // Envoyer un email à l'admin (societefbm484@gmail.com)
       try {
         await sendEmail({
           to: "societefbm484@gmail.com",
-          subject: "🚨 NOUVELLE COMMANDE - Société FBM",
+          subject: `🚨 NOUVELLE COMMANDE ${orderNumber} - Société FBM`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #fff7ed;">
               <h2 style="color: #ea580c; text-align: center;">🚨 NOUVELLE COMMANDE</h2>
               
               <div style="background-color: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <p><strong>🔢 Numéro de commande :</strong> ${orderNumber}</p>
                 <p><strong>👤 Client :</strong> ${name}</p>
                 <p><strong>📧 Email :</strong> ${userEmail}</p>
                 <p><strong>📱 Téléphone :</strong> ${phone}</p>
@@ -159,7 +176,11 @@ export default async function handler(req, res) {
         console.error("⚠️ Erreur d'email:", emailError.message);
       }
 
-      return res.status(201).json(newOrder);
+      // Retourner la commande avec le numéro formaté
+      return res.status(201).json({
+        ...newOrder.toObject(),
+        orderNumber: orderNumber
+      });
     } catch (err) {
       console.error("❌ Erreur POST orders:", err);
       return res.status(500).json({ error: "Erreur serveur lors du POST" });
@@ -180,7 +201,14 @@ export default async function handler(req, res) {
       if (total) order.total = total;
 
       await order.save();
-      return res.status(200).json(order);
+      
+      // Ajouter le numéro de commande formaté
+      const orderNumber = `#${order._id.toString().slice(-8)}s${Math.floor(Math.random() * 9) + 1}`;
+      
+      return res.status(200).json({
+        ...order.toObject(),
+        orderNumber: orderNumber
+      });
     } catch (err) {
       console.error("Erreur PUT orders:", err);
       return res.status(500).json({ error: "Erreur PUT" });
@@ -199,7 +227,10 @@ export default async function handler(req, res) {
       order.status = "Annulée";
       await order.save();
 
-      return res.status(200).json({ message: "Commande annulée avec succès" });
+      return res.status(200).json({ 
+        message: "Commande annulée avec succès",
+        orderNumber: `#${order._id.toString().slice(-8)}s${Math.floor(Math.random() * 9) + 1}`
+      });
     } catch (err) {
       console.error("Erreur DELETE orders:", err);
       return res.status(500).json({ error: "Erreur DELETE" });
