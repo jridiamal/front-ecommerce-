@@ -398,7 +398,7 @@ export default function AccountPage() {
     if (statusFilter === 'pending') return allOrders.filter(o => o.status === "En attente");
     if (statusFilter === 'ready') return allOrders.filter(o => o.status === "Prête");
     if (statusFilter === 'cancelled') return allOrders.filter(o => o.status === "Annulée");
-    if (statusFilter === 'delivered') return allOrders.filter(o => o.status === "Livrée");
+    if (statusFilter === 'delivered') return allOrders.filter(o => o.status === "Récupérée");
     
     return allOrders;
   };
@@ -679,6 +679,7 @@ export default function AccountPage() {
           <Card>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: '20px' }}>
               <h3 style={{ fontSize: "20px", margin: 0, color: '#1e293b' }}>📋 Mes Commandes</h3>
+              
               
               {allOrders.filter(o => ["Prête", "Annulée", "Livrée"].includes(o.status)).length > 0 && (
                 <DeleteHistoryButton onClick={handleDeleteHistory}>
