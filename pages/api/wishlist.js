@@ -1,7 +1,5 @@
-// /api/wishlist.js
 import { mongooseConnect } from "@/lib/mongoose";
 import Wishlist from "@/models/WishedProduct";
-import Product from "@/models/Product"; // IMPORTANT: Ajouter cette importation
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
 
@@ -17,30 +15,15 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     try {
-      // Récupérer tous les favoris avec les produits COMPLETS
-      const wishlistItems = await Wishlist.find({ userEmail })
-        .populate({
-          path: 'product',
-          model: Product, // Utiliser le modèle Product
-          select: '_id title price images' // Sélectionner les champs nécessaires
-        })
-        .lean();
-      
-      // Formater la réponse
-      const formattedWishlist = wishlistItems.map(item => ({
-        _id: item._id,
-        product: item.product ? {
-          _id: item.product._id,
-          title: item.product.title,
-          price: item.product.price,
-          images: item.product.images || []
-        } : null,
-        wished: true
-      }));
-
-      return res.status(200).json(formattedWishlist);
+      const wishlist = await Wishlist.find({ userEmail }).populate("product");
+      return res.status(200).json(
+        wishlist.map(w => ({
+          _id: w._id,
+          product: w.product,
+          wished: true
+        }))
+      );
     } catch (err) {
-      console.error("Erreur GET wishlist:", err);
       return res.status(500).json({ error: "Erreur lors de la récupération" });
     }
   }
@@ -60,19 +43,6 @@ export default async function handler(req, res) {
     }
   }
 
-  if (req.method === "DELETE") {
-    const { productId } = req.query;
-    if (!productId) return res.status(400).json({ error: "ID produit manquant" });
-
-    try {
-      await Wishlist.deleteOne({ userEmail, product: productId });
-      return res.status(200).json({ message: "Produit retiré des favoris" });
-    } catch (err) {
-      console.error("Erreur DELETE wishlist:", err);
-      return res.status(500).json({ error: "Erreur lors de la suppression" });
-    }
-  }
-
-  res.setHeader("Allow", ["GET", "POST", "DELETE"]);
+  res.setHeader("Allow", ["GET", "POST"]);
   return res.status(405).end(`Method ${req.method} Not Allowed`);
 }
