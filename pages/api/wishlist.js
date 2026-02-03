@@ -7,42 +7,51 @@ export default async function handler(req, res) {
   await mongooseConnect();
 
   const session = await getServerSession(req, res, authOptions);
-  if (!session || !session.user?.email) {
+  if (!session?.user?.email) {
     return res.status(401).json({ error: "Non authentifié" });
   }
 
   const userEmail = session.user.email;
 
+  // ✅ GET
   if (req.method === "GET") {
-    try {
-      const wishlist = await Wishlist.find({ userEmail }).populate("product");
-      return res.status(200).json(
-        wishlist.map(w => ({
-          _id: w._id,
-          product: w.product,
-          wished: true
-        }))
-      );
-    } catch (err) {
-      return res.status(500).json({ error: "Erreur lors de la récupération" });
-    }
+    const wishlist = await Wishlist
+      .find({ userEmail })
+      .populate("product");
+
+    return res.status(200).json(wishlist);
   }
 
+  // ✅ POST (toggle)
   if (req.method === "POST") {
-    const { product } = req.body;
-    if (!product) return res.status(400).json({ error: "ID produit manquant" });
+    const { productId } = req.body;
+    if (!productId) {
+      return res.status(400).json({ error: "productId manquant" });
+    }
 
-    const existing = await Wishlist.findOne({ userEmail, product });
+    const existing = await Wishlist.findOne({ userEmail, product: productId });
 
     if (existing) {
       await Wishlist.deleteOne({ _id: existing._id });
-      return res.status(200).json({ wished: false });
-    } else {
-      await Wishlist.create({ userEmail, product });
-      return res.status(200).json({ wished: true });
+      return res.json({ wished: false });
     }
+
+    await Wishlist.create({ userEmail, product: productId });
+    return res.json({ wished: true });
   }
 
-  res.setHeader("Allow", ["GET", "POST"]);
-  return res.status(405).end(`Method ${req.method} Not Allowed`);
+  // ✅ DELETE
+  if (req.method === "DELETE") {
+    const { productId } = req.query;
+
+    await Wishlist.deleteOne({
+      userEmail,
+      product: productId,
+    });
+
+    return res.json({ success: true });
+  }
+
+  res.setHeader("Allow", ["GET", "POST", "DELETE"]);
+  res.status(405).end();
 }
