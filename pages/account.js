@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Header from "@/components/Header";
 import { useSession, signIn, signOut } from "next-auth/react";
 import styled from "styled-components";
@@ -105,7 +105,15 @@ const TableHeader = styled.th`
   border-bottom: 2px solid #e2e8f0;
 `;
 
-const TableCell = styled.td`padding: 12px; border-bottom: 1px solid #f1f5f9;`;
+const TableCell = styled.td`
+  padding: 12px; 
+  border-bottom: 1px solid #f1f5f9;
+  @media (max-width: 800px) {
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+`;
 
 const WishlistGrid = styled.div`
   display: grid;
@@ -166,13 +174,34 @@ const WishItemPrice = styled.span`
   margin-top: 5px;
 `;
 
-const ProductList = styled.div`display:flex; flex-direction:column; gap:10px;`;
-const ProductItem = styled.div`display:flex; align-items:center; gap:12px;`;
-const ProductImage = styled.img`
-  width:50px; height:50px; border-radius:8px; object-fit:cover; flex-shrink:0;
+const ProductList = styled.div`
+  display: flex; 
+  flex-direction: column; 
+  gap: 10px;
 `;
 
-const ProductText = styled.div`p{margin:0; font-size:13px;color:#374151;line-height:1.2;}`;
+const ProductItem = styled.div`
+  display: flex; 
+  align-items: center; 
+  gap: 12px;
+`;
+
+const ProductImage = styled.img`
+  width: 50px; 
+  height: 50px; 
+  border-radius: 8px; 
+  object-fit: cover; 
+  flex-shrink: 0;
+`;
+
+const ProductText = styled.div`
+  p {
+    margin: 0; 
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.2;
+  }
+`;
 
 const StatusBadge = styled.span`
   padding: 4px 12px;
@@ -180,14 +209,14 @@ const StatusBadge = styled.span`
   font-size: 12px;
   font-weight: 700;
   display: inline-block;
-  background:${props => 
+  background: ${props => 
     props.$status === "Prête" ? "#dcfce7" : 
-    props.$status === "Livrée" ? "#d1fae5" :
+    props.$status === "Récupérée" ? "#d1fae5" :
     props.$status === "En attente" ? "#f1f5f9" : 
     "#fee2e2"};
-  color:${props => 
+  color: ${props => 
     props.$status === "Prête" ? "#166534" : 
-    props.$status === "Livrée" ? "#065f46" :
+    props.$status === "Récupérée" ? "#065f46" :
     props.$status === "En attente" ? "#475569" : 
     "#991b1b"};
 `;
@@ -207,39 +236,10 @@ const CancelButton = styled.button`
   &:hover {
     background: #ffe4e6;
   }
-  @media(min-width:768px){ width: auto; }
-`;
-
-const BackButton = styled.button`
-  background: transparent;
-  border: 1px solid #cbd5e1;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-bottom: 20px;
-  font-weight: 600;
-  transition: all 0.2s;
-  &:hover { 
-    background: #f1f5f9; 
-    border-color: #94a3b8;
+  @media(min-width:768px){ 
+    width: auto; 
+    margin-top: 0;
   }
-`;
-
-const TimeBadge = styled.div`
-  font-size: 11px;
-  color: #92400e;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background-color: #fef3c7;
-  padding: 3px 10px;
-  border-radius: 12px;
-  align-self: flex-start;
-  margin-top: 6px;
-  font-weight: 500;
 `;
 
 const FilterButtons = styled.div`
@@ -294,28 +294,36 @@ const DeleteHistoryButton = styled.button`
   }
 `;
 
-const ViewToggle = styled.div`
+const TimeBadge = styled.div`
+  font-size: 11px;
+  color: #92400e;
   display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #e2e8f0;
+  align-items: center;
+  gap: 4px;
+  background-color: #fef3c7;
+  padding: 3px 10px;
+  border-radius: 12px;
+  align-self: flex-start;
+  margin-top: 6px;
+  font-weight: 500;
 `;
 
-const ViewToggleButton = styled.button`
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: 1px solid ${props => props.$active ? '#2563eb' : '#cbd5e1'};
-  background: ${props => props.$active ? '#dbeafe' : 'white'};
-  color: ${props => props.$active ? '#1e40af' : '#475569'};
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  &:hover {
-    background: ${props => props.$active ? '#dbeafe' : '#f8fafc'};
+// Helper function for time calculation
+const calculateTimeRemaining = (createdAt) => {
+  if (!createdAt) return null;
+  
+  const created = new Date(createdAt);
+  const now = new Date();
+  const diffMs = now - created;
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  
+  if (diffHours < 24) {
+    return `Il y a ${diffHours}h`;
+  } else {
+    const diffDays = Math.floor(diffHours / 24);
+    return `Il y a ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
   }
-`;
+};
 
 export default function AccountPage() {
   const { data: session, status } = useSession();
@@ -325,8 +333,7 @@ export default function AccountPage() {
   const [activeView, setActiveView] = useState('orders');
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
-
- 
+  const dropdownRef = useRef(null);
 
   // Charger les données
   useEffect(() => {
@@ -451,7 +458,7 @@ export default function AccountPage() {
   // Fermer le dropdown quand on clique ailleurs
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (isDropdownOpen && !event.target.closest('.avatar-wrapper')) {
+      if (isDropdownOpen && dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
       }
     };
@@ -527,11 +534,12 @@ export default function AccountPage() {
         {/* Carte Profil */}
         <Card>
           <ProfileSection>
-            <AvatarWrapper className="avatar-wrapper" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
+            <AvatarWrapper ref={dropdownRef}>
               <AvatarImage 
                 src={session.user?.image || "/avatar.png"} 
                 $active={isDropdownOpen} 
                 alt="Avatar"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 onError={(e) => {
                   e.target.src = "/avatar.png";
                 }}
@@ -656,8 +664,7 @@ export default function AccountPage() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: '20px' }}>
               <h3 style={{ fontSize: "20px", margin: 0, color: '#1e293b' }}>📋 Mes Commandes</h3>
               
-              
-              {allOrders.filter(o => ["Prête", "Annulée", "Livrée"].includes(o.status)).length > 0 && (
+              {allOrders.filter(o => ["Prête", "Annulée", "Récupérée"].includes(o.status)).length > 0 && (
                 <DeleteHistoryButton onClick={handleDeleteHistory}>
                   🗑️ Supprimer l'historique
                 </DeleteHistoryButton>
@@ -853,7 +860,7 @@ export default function AccountPage() {
                               color: '#065f46',
                               fontWeight: '600'
                             }}>
-                              ✅ Livrée
+                              ✅ Récupérée
                             </span>
                           )}
                         </TableCell>
