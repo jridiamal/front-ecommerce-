@@ -326,31 +326,7 @@ export default function AccountPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
-  // Calculer le temps restant
-  const calculateTimeRemaining = (createdAt) => {
-    if (!createdAt) return "Information non disponible";
-    
-    try {
-      const orderDate = new Date(createdAt);
-      if (isNaN(orderDate.getTime())) return "Date invalide";
-      
-      const now = new Date();
-      const hoursDiff = Math.floor((now - orderDate) / (1000 * 60 * 60));
-      const hoursRemaining = 96 - hoursDiff;
-      
-      if (hoursRemaining <= 0) {
-        return "Prête aujourd'hui";
-      } else if (hoursRemaining <= 24) {
-        return "Prête demain";
-      } else {
-        const days = Math.ceil(hoursRemaining / 24);
-        return `Prête dans ${days} jour${days > 1 ? 's' : ''}`;
-      }
-    } catch (error) {
-      console.error("Erreur calcul temps:", error);
-      return "Information indisponible";
-    }
-  };
+ 
 
   // Charger les données
   useEffect(() => {
