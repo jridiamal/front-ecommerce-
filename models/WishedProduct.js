@@ -1,12 +1,17 @@
+// models/Product.js
 import mongoose from "mongoose";
 
-const WishlistSchema = new mongoose.Schema(
+const ProductSchema = new mongoose.Schema(
   {
-    userEmail: { type: String, required: true },
-    product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+    title: { type: String, required: true },
+    description: { type: String },
+    price: { type: Number, required: true },
+    images: [{ type: String }],
+    category: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
+    // ... autres champs
   },
   { timestamps: true }
 );
 
-export default mongoose.models.Wishlist ||
-  mongoose.model("Wishlist", WishlistSchema);
+export default mongoose.models.Product || 
+       mongoose.model("Product", ProductSchema);
