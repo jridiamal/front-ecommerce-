@@ -102,14 +102,7 @@ const ActionButton = styled.button`
     transform: scale(1.1);
   }
   svg { width: 18px; height: 18px; fill: currentColor; }
-  &.wished { 
-    color: #ff3b3b; 
-    background: rgba(255, 59, 59, 0.1);
-    &:hover {
-      background: #ff3b3b;
-      color: white;
-    }
-  }
+  &.wished { color: #ff3b3b; }
 `;
 
 const Content = styled.div`
@@ -128,13 +121,13 @@ const ColorCircle = styled.button`
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 2px solid ${({ $active }) => ($active ? "#000" : "#eee")};
+  border: 2px solid ${({ active }) => (active ? "#000" : "#eee")};
   cursor: pointer;
   position: relative;
   padding: 0;
   background-color: ${({ color }) => color};
   transition: all 0.2s ease;
-  ${({ $isOutOfStock }) => $isOutOfStock && `
+  ${({ isOutOfStock }) => isOutOfStock && `
     &::after {
       content: "";
       position: absolute;
@@ -170,7 +163,7 @@ const Price = styled.div`
 export default function ProductBox({ _id, title, price, images = [], properties, outOfStock, wished = false }) {
   const { addProduct } = useContext(CartContext);
   const { triggerFlyAnimation } = useContext(AnimationContext);
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const imageRef = useRef(null);
 
   const colorVariants = properties?.colorVariants || [];
@@ -179,7 +172,6 @@ export default function ProductBox({ _id, title, price, images = [], properties,
   const [selectedColor, setSelectedColor] = useState(null);
   const [currentImage, setCurrentImage] = useState(images[0]);
   const [hovered, setHovered] = useState(false);
-  const [isWished, setIsWished] = useState(wished);
 
   const currentVariant = selectedColor 
     ? colorVariants.find(v => v.color === selectedColor) 
@@ -194,13 +186,13 @@ export default function ProductBox({ _id, title, price, images = [], properties,
   const canAddToCart = !isProductOutOfStock && 
     (!selectedColor || !isCurrentVariantOutOfStock) &&
     (!currentVariant || !currentVariant.outOfStock);
+  
+  const [isWished, setIsWished] = useState(wished);
 
-  // Synchroniser l'état avec la prop wished
   useEffect(() => {
     setIsWished(wished);
   }, [wished]);
 
-  // Gérer l'animation de survol des images
   useEffect(() => {
     let interval;
     if (hovered && !selectedColor && !currentVariant && images.length > 1) {
@@ -216,61 +208,52 @@ export default function ProductBox({ _id, title, price, images = [], properties,
     return () => clearInterval(interval);
   }, [hovered, selectedColor, currentVariant, images]);
 
-  // Fonction pour gérer les favoris
   async function toggleWishlist(e) {
     e.preventDefault();
-    e.stopPropagation(); // Empêche la navigation
-    
-    if (status !== "authenticated") { 
+    if(status !== "authenticated"){ 
       toast.error("Connectez-vous pour ajouter aux favoris"); 
       return; 
     }
 
     const nextValue = !isWished;
-    setIsWished(nextValue);
+    setIsWished(nextValue); 
     
     try {
-      if (nextValue) {
-        // Ajouter aux favoris
-        const res = await fetch("/api/wishlist", {
+      if(nextValue) {
+        const response = await fetch("/api/wishlist", {
           method: "POST", 
           headers: { "Content-Type": "application/json" }, 
           body: JSON.stringify({ productId: _id })
         });
         
-        if (!res.ok) {
-          const error = await res.json();
-          throw new Error(error.error || "Erreur lors de l'ajout");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        toast.success("Ajouté aux favoris");
+        const data = await response.json();
         
       } else {
-        // Retirer des favoris
-        const res = await fetch(`/api/wishlist?productId=${_id}`, {
-          method: "DELETE",
+        const response = await fetch(`/api/wishlist?productId=${_id}`, {
+          method: "DELETE"
         });
         
-        if (!res.ok) {
-          const error = await res.json();
-          throw new Error(error.error || "Erreur lors de la suppression");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        toast.success("Retiré des favoris");
+        const data = await response.json();
       }
       
-    } catch (err) {
-      console.error("Erreur wishlist:", err);
-      // Annuler le changement d'état
+      toast.success(nextValue ? "Ajouté aux favoris" : "Retiré des favoris");
+      
+    } catch {
       setIsWished(!nextValue);
-      toast.error(err.message || "Erreur réseau");
+      toast.error("Erreur réseau");
     }
   }
 
-  // Fonction pour ajouter au panier
   function handleAddToCart(e) {
     e.preventDefault();
-    e.stopPropagation();
     
     if (isProductOutOfStock) {
       toast.error("Ce produit est épuisé");
@@ -286,10 +269,10 @@ export default function ProductBox({ _id, title, price, images = [], properties,
       return;
     }
 
-    // Animation
     const imgElement = imageRef.current;
     if (imgElement) {
       const rect = imgElement.getBoundingClientRect();
+      
       triggerFlyAnimation(imgElement, {
         left: rect.left,
         top: rect.top,
@@ -298,7 +281,6 @@ export default function ProductBox({ _id, title, price, images = [], properties,
       });
     }
 
-    // Ajouter au panier
     addProduct({
       _id,
       title,
@@ -313,17 +295,8 @@ export default function ProductBox({ _id, title, price, images = [], properties,
 
   return (
     <Card>
-      {isRupture && (
-        <StockRibbon>
-          <ShineEffect />
-          Rupture
-        </StockRibbon>
-      )}
-      
-      <ImageBox 
-        onMouseEnter={() => setHovered(true)} 
-        onMouseLeave={() => setHovered(false)}
-      >
+      {isRupture && <StockRibbon><ShineEffect />Rupture</StockRibbon>}
+      <ImageBox onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
         <Link href={`/product/${_id}`}>
           <AnimatePresence mode="wait">
             <AnimatedProductImg
@@ -338,21 +311,14 @@ export default function ProductBox({ _id, title, price, images = [], properties,
             />
           </AnimatePresence>
         </Link>
-        
         <IconsOverlay>
-          {/* Bouton Favoris */}
           <ActionButton 
             type="button" 
             className={isWished ? "wished" : ""} 
             onClick={toggleWishlist}
-            title={isWished ? "Retirer des favoris" : "Ajouter aux favoris"}
           >
-            <svg viewBox="0 0 24 24">
-              <path d="M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"/>
-            </svg>
+            <svg viewBox="0 0 24 24"><path d="M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"/></svg>
           </ActionButton>
-          
-          {/* Bouton Panier */}
           <ActionButton 
             type="button" 
             onClick={handleAddToCart}
@@ -361,15 +327,11 @@ export default function ProductBox({ _id, title, price, images = [], properties,
               opacity: canAddToCart ? 1 : 0.4, 
               cursor: canAddToCart ? "pointer" : "not-allowed" 
             }}
-            title={canAddToCart ? "Ajouter au panier" : "Produit épuisé"}
           >
-            <svg viewBox="0 0 24 24">
-              <path d="M17,18A2,2 0 0,1 19,20A2,2 0 0,1 17,22C15.89,22 15,21.1 15,20C15,18.89 15.89,18 17,18M1,2H4.27L5.21,4H20A1,1 0 0,1 21,5C21,5.17 20.95,5.34 20.88,5.5L17.3,11.97C16.96,12.58 16.3,13 15.55,13H8.1L7.2,14.63L7.17,14.75A0.25,0.25 0 0,0 7.42,15H19V17H7C5.89,17 5,16.1 5,15C5,14.65 5.09,14.32 5.24,14.04L6.6,11.59L3,4H1V2M7,18A2,2 0 0,1 9,20A2,2 0 0,1 7,22C5.89,22 5,21.1 5,20C5,18.89 5.89,18 7,18M16,11L18.78,6H6.14L8.5,11H16Z" />
-            </svg>
+            <svg viewBox="0 0 24 24"><path d="M17,18A2,2 0 0,1 19,20A2,2 0 0,1 17,22C15.89,22 15,21.1 15,20C15,18.89 15.89,18 17,18M1,2H4.27L5.21,4H20A1,1 0 0,1 21,5C21,5.17 20.95,5.34 20.88,5.5L17.3,11.97C16.96,12.58 16.3,13 15.55,13H8.1L7.2,14.63L7.17,14.75A0.25,0.25 0 0,0 7.42,15H19V17H7C5.89,17 5,16.1 5,15C5,14.65 5.09,14.32 5.24,14.04L6.6,11.59L3,4H1V2M7,18A2,2 0 0,1 9,20A2,2 0 0,1 7,22C5.89,22 5,21.1 5,20C5,18.89 5.89,18 7,18M16,11L18.78,6H6.14L8.5,11H16Z" /></svg>
           </ActionButton>
         </IconsOverlay>
       </ImageBox>
-      
       <Content>
         {hasColors && (
           <ColorWrapper>
@@ -377,11 +339,10 @@ export default function ProductBox({ _id, title, price, images = [], properties,
               <ColorCircle
                 key={i}
                 color={v.color}
-                $active={selectedColor === v.color || currentVariant?.color === v.color}
-                $isOutOfStock={v.outOfStock}
+                active={selectedColor === v.color || currentVariant?.color === v.color}
+                isOutOfStock={v.outOfStock}
                 onClick={(e) => {
                   e.preventDefault();
-                  e.stopPropagation();
                   if (v.outOfStock) {
                     toast.error(`La couleur ${v.color} est épuisée`);
                     return;
@@ -394,11 +355,8 @@ export default function ProductBox({ _id, title, price, images = [], properties,
             ))}
           </ColorWrapper>
         )}
-        
         <Title href={`/product/${_id}`}>{title}</Title>
-        <Price>
-          {price} DT <span>(HT)</span>
-        </Price>
+        <Price>{price} DT <span>(HT)</span></Price>
       </Content>
     </Card>
   );

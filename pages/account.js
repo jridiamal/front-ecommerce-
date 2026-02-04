@@ -308,7 +308,6 @@ const TimeBadge = styled.div`
   font-weight: 500;
 `;
 
-// Helper function for time calculation
 const calculateTimeRemaining = (createdAt) => {
   if (!createdAt) return null;
   
@@ -335,13 +334,11 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true);
   const dropdownRef = useRef(null);
 
-  // Charger les données
   useEffect(() => {
     const loadData = async () => {
       if (status === "authenticated") {
         setLoading(true);
         try {
-          // Charger les commandes
           const ordersRes = await fetch("/api/orders");
           if (ordersRes.ok) {
             const ordersData = await ordersRes.json();
@@ -350,7 +347,6 @@ export default function AccountPage() {
             }
           }
 
-          // Charger la wishlist
           const wishlistRes = await fetch("/api/wishlist");
           if (wishlistRes.ok) {
             const wishlistData = await wishlistRes.json();
@@ -373,7 +369,6 @@ export default function AccountPage() {
     loadData();
   }, [status]);
 
-  // Filtrer les commandes
   const getFilteredOrders = () => {
     if (!Array.isArray(allOrders)) return [];
     
@@ -388,7 +383,6 @@ export default function AccountPage() {
 
   const filteredOrders = getFilteredOrders();
 
-  // Annuler une commande
   const handleCancelOrder = async (orderId) => {
     if (!window.confirm("Êtes-vous sûr de vouloir annuler cette commande ?")) return;
     
@@ -414,7 +408,6 @@ export default function AccountPage() {
     }
   };
 
-  // Supprimer l'historique
   const handleDeleteHistory = async () => {
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer l'historique des commandes terminées ?")) return;
     
@@ -422,7 +415,6 @@ export default function AccountPage() {
       const res = await fetch("/api/historique", { method: "DELETE" });
       
       if (res.ok) {
-        // Garder seulement les commandes "En attente"
         setAllOrders(prev => prev.filter(order => order.status === "En attente"));
         toast.success("Historique supprimé avec succès");
       } else {
@@ -435,7 +427,6 @@ export default function AccountPage() {
     }
   };
 
-  // Supprimer un favori
   const handleRemoveWishlistItem = async (productId) => {
     try {
       const res = await fetch(`/api/wishlist?productId=${productId}`, {
@@ -455,7 +446,6 @@ export default function AccountPage() {
     }
   };
 
-  // Fermer le dropdown quand on clique ailleurs
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (isDropdownOpen && dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -467,7 +457,6 @@ export default function AccountPage() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [isDropdownOpen]);
 
-  // État de chargement
   if (status === "loading" || loading) {
     return (
       <>
@@ -482,7 +471,6 @@ export default function AccountPage() {
     );
   }
 
-  // Non connecté
   if (!session) {
     return (
       <>
@@ -531,7 +519,6 @@ export default function AccountPage() {
     <>
       <Header />
       <Container>
-        {/* Carte Profil */}
         <Card>
           <ProfileSection>
             <AvatarWrapper ref={dropdownRef}>
@@ -629,13 +616,7 @@ export default function AccountPage() {
                       cursor: 'pointer',
                       fontWeight: '600',
                       fontSize: '14px',
-                      marginTop: '10px',
-                      transition: 'all 0.2s',
-                      '&:hover': {
-                        background: '#fee2e2',
-                        borderColor: '#fecaca',
-                        color: '#991b1b'
-                      }
+                      marginTop: '10px'
                     }}
                   >
                     Se déconnecter
@@ -658,7 +639,6 @@ export default function AccountPage() {
           </ProfileSection>
         </Card>
 
-        {/* Vue Commandes */}
         {activeView === 'orders' ? (
           <Card>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: '20px' }}>
@@ -671,7 +651,6 @@ export default function AccountPage() {
               )}
             </div>
 
-            {/* Filtres */}
             <FilterButtons>
               <FilterButton 
                 $active={statusFilter === 'all'}
@@ -706,7 +685,6 @@ export default function AccountPage() {
               </FilterButton>
             </FilterButtons>
 
-            {/* Tableau des commandes */}
             {filteredOrders.length === 0 ? (
               <EmptyState>
                 {statusFilter === 'all' ? (
@@ -872,7 +850,6 @@ export default function AccountPage() {
             )}
           </Card>
         ) : (
-          /* Vue Favoris */
           <Card>
             <h3 style={{ fontSize: "20px", margin: '0 0 20px 0', color: '#1e293b' }}>
               ❤️ Mes Favoris
@@ -952,12 +929,7 @@ export default function AccountPage() {
                         cursor: 'pointer',
                         fontSize: '14px',
                         color: '#ef4444',
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-                        transition: 'all 0.2s',
-                        '&:hover': {
-                          background: '#fee2e2',
-                          transform: 'scale(1.1)'
-                        }
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
                       }}
                       title="Retirer des favoris"
                     >
