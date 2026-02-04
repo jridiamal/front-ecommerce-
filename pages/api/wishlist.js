@@ -1,5 +1,5 @@
 import { mongooseConnect } from "@/lib/mongoose";
-import Wishlist from "@/models/Wishlist";
+import Wishlist from "@/models/WishedProduct";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
 
