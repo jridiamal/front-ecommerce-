@@ -394,31 +394,21 @@ export default function AccountPage() {
     
     return () => clearInterval(intervalId);
   }, [status, activeView]);
-// Dans AccountPage.js, remplacez l'effet existant par :
-useEffect(() => {
-  const handleWishlistUpdate = () => {
-    if (status === "authenticated") {
-      fetchWishlist();
-    }
-  };
 
-  // Écouter l'événement
-  window.addEventListener('wishlist-updated', handleWishlistUpdate);
-  
-  // Rafraîchir aussi lors du focus de la fenêtre
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === 'visible' && status === "authenticated") {
-      fetchWishlist();
-    }
-  };
-  
-  document.addEventListener('visibilitychange', handleVisibilityChange);
-  
-  return () => {
-    window.removeEventListener('wishlist-updated', handleWishlistUpdate);
-    document.removeEventListener('visibilitychange', handleVisibilityChange);
-  };
-}, [status]);
+  // Écouter les événements de mise à jour des favoris
+  useEffect(() => {
+    const handleWishlistUpdate = () => {
+      if (status === "authenticated") {
+        fetchWishlist();
+      }
+    };
+
+    window.addEventListener('wishlist-updated', handleWishlistUpdate);
+    
+    return () => {
+      window.removeEventListener('wishlist-updated', handleWishlistUpdate);
+    };
+  }, [status]);
 
   const getFilteredOrders = () => {
     if (!Array.isArray(allOrders)) return [];
