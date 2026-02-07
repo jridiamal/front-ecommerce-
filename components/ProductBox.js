@@ -102,7 +102,10 @@ const ActionButton = styled.button`
     transform: scale(1.1);
   }
   svg { width: 18px; height: 18px; fill: currentColor; }
-  &.wished { color: #ff3b3b; }
+  &.wished { 
+    color: #ff3b3b;
+    background: #fff0f0;
+  }
 `;
 
 const Content = styled.div`
@@ -172,6 +175,11 @@ export default function ProductBox({ _id, title, price, images = [], properties,
   const [selectedColor, setSelectedColor] = useState(null);
   const [currentImage, setCurrentImage] = useState(images[0]);
   const [hovered, setHovered] = useState(false);
+  
+  // État local pour suivre le statut favori
+  const [isWished, setIsWished] = useState(wished);
+  // État pour suivre le chargement
+  const [isWishLoading, setIsWishLoading] = useState(false);
 
   const currentVariant = selectedColor 
     ? colorVariants.find(v => v.color === selectedColor) 
@@ -187,8 +195,7 @@ export default function ProductBox({ _id, title, price, images = [], properties,
     (!selectedColor || !isCurrentVariantOutOfStock) &&
     (!currentVariant || !currentVariant.outOfStock);
   
-  const [isWished, setIsWished] = useState(wished);
-
+  // Synchroniser avec le prop initial
   useEffect(() => {
     setIsWished(wished);
   }, [wished]);
@@ -208,15 +215,39 @@ export default function ProductBox({ _id, title, price, images = [], properties,
     return () => clearInterval(interval);
   }, [hovered, selectedColor, currentVariant, images]);
 
+  // Vérifier le statut favori au chargement du composant
+  useEffect(() => {
+    const checkWishStatus = async () => {
+      if (status === "authenticated" && _id) {
+        try {
+          const response = await fetch(`/api/wishlist/check?productId=${_id}`);
+          if (response.ok) {
+            const data = await response.json();
+            setIsWished(data.wished);
+          }
+        } catch (error) {
+          console.error("Erreur vérification favori:", error);
+        }
+      }
+    };
+    
+    checkWishStatus();
+  }, [_id, status]);
+
   async function toggleWishlist(e) {
     e.preventDefault();
+    e.stopPropagation();
+    
     if(status !== "authenticated"){ 
       toast.error("Connectez-vous pour ajouter aux favoris"); 
       return; 
     }
 
-    const nextValue = !isWished;
-    setIsWished(nextValue); 
+    setIsWishLoading(true);
+    const previousState = isWished;
+    
+    // Optimistic update
+    setIsWished(!previousState);
     
     try {
       const response = await fetch("/api/wishlist", {
@@ -232,21 +263,27 @@ export default function ProductBox({ _id, title, price, images = [], properties,
       
       const data = await response.json();
       
+      // Mettre à jour avec la réponse du serveur
+      setIsWished(data.wished);
+      
       // Émettre un événement personnalisé pour notifier AccountPage
       window.dispatchEvent(new CustomEvent('wishlist-updated'));
       
-      toast.success(nextValue ? "Ajouté aux favoris" : "Retiré des favoris");
+      toast.success(data.wished ? "Ajouté aux favoris" : "Retiré des favoris");
       
     } catch (error) {
       // Revenir à l'état précédent en cas d'erreur
-      setIsWished(!nextValue);
+      setIsWished(previousState);
       console.error("Erreur wishlist:", error);
       toast.error(error.message || "Erreur réseau");
+    } finally {
+      setIsWishLoading(false);
     }
   }
 
   function handleAddToCart(e) {
     e.preventDefault();
+    e.stopPropagation();
     
     if (isProductOutOfStock) {
       toast.error("Ce produit est épuisé");
@@ -309,19 +346,34 @@ export default function ProductBox({ _id, title, price, images = [], properties,
             type="button" 
             className={isWished ? "wished" : ""} 
             onClick={toggleWishlist}
+            disabled={isWishLoading}
+            style={{ 
+              opacity: isWishLoading ? 0.7 : 1,
+              cursor: isWishLoading ? 'wait' : 'pointer'
+            }}
           >
-            <svg viewBox="0 0 24 24"><path d="M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"/></svg>
+            {isWishLoading ? (
+              <svg viewBox="0 0 24 24" style={{ animation: 'spin 1s linear infinite' }}>
+                <path d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24">
+                <path d="M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"/>
+              </svg>
+            )}
           </ActionButton>
           <ActionButton 
             type="button" 
             onClick={handleAddToCart}
-            disabled={!canAddToCart}
+            disabled={!canAddToCart || isWishLoading}
             style={{ 
               opacity: canAddToCart ? 1 : 0.4, 
               cursor: canAddToCart ? "pointer" : "not-allowed" 
             }}
           >
-            <svg viewBox="0 0 24 24"><path d="M17,18A2,2 0 0,1 19,20A2,2 0 0,1 17,22C15.89,22 15,21.1 15,20C15,18.89 15.89,18 17,18M1,2H4.27L5.21,4H20A1,1 0 0,1 21,5C21,5.17 20.95,5.34 20.88,5.5L17.3,11.97C16.96,12.58 16.3,13 15.55,13H8.1L7.2,14.63L7.17,14.75A0.25,0.25 0 0,0 7.42,15H19V17H7C5.89,17 5,16.1 5,15C5,14.65 5.09,14.32 5.24,14.04L6.6,11.59L3,4H1V2M7,18A2,2 0 0,1 9,20A2,2 0 0,1 7,22C5.89,22 5,21.1 5,20C5,18.89 5.89,18 7,18M16,11L18.78,6H6.14L8.5,11H16Z" /></svg>
+            <svg viewBox="0 0 24 24">
+              <path d="M17,18A2,2 0 0,1 19,20A2,2 0 0,1 17,22C15.89,22 15,21.1 15,20C15,18.89 15.89,18 17,18M1,2H4.27L5.21,4H20A1,1 0 0,1 21,5C21,5.17 20.95,5.34 20.88,5.5L17.3,11.97C16.96,12.58 16.3,13 15.55,13H8.1L7.2,14.63L7.17,14.75A0.25,0.25 0 0,0 7.42,15H19V17H7C5.89,17 5,16.1 5,15C5,14.65 5.09,14.32 5.24,14.04L6.6,11.59L3,4H1V2M7,18A2,2 0 0,1 9,20A2,2 0 0,1 7,22C5.89,22 5,21.1 5,20C5,18.89 5.89,18 7,18M16,11L18.78,6H6.14L8.5,11H16Z" />
+            </svg>
           </ActionButton>
         </IconsOverlay>
       </ImageBox>
@@ -336,6 +388,7 @@ export default function ProductBox({ _id, title, price, images = [], properties,
                 isOutOfStock={v.outOfStock}
                 onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   if (v.outOfStock) {
                     toast.error(`La couleur ${v.color} est épuisée`);
                     return;
