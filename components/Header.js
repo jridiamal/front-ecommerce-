@@ -71,7 +71,7 @@ const NavLink = styled(Link)`
   font-weight: 600;
   font-size: 0.95rem;
   position: relative;
-  transition: color 0.3s ease;
+  transition: color 0.3s ease; 
   display: flex;
   align-items: center;
   &::after {
