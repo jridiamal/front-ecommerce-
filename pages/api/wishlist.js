@@ -18,13 +18,19 @@ export default async function handler(req, res) {
     try {
       const wishlist = await Wishlist
         .find({ userEmail })
-        .populate("product");
+        .populate({
+          path: "product",
+          select: "_id title images price properties"
+        });
 
-      // ✅ تنظيف favoris المرتبطة بمنتجات محذوفة
+      console.log(`Wishlist trouvée pour ${userEmail}: ${wishlist.length} items`);
+      
+      // Filtrer les favoris avec produits null (produits supprimés)
       const cleanedWishlist = wishlist.filter(item => item.product);
 
       return res.status(200).json(cleanedWishlist);
     } catch (error) {
+      console.error("Erreur GET wishlist:", error);
       return res.status(500).json({ error: "Erreur serveur" });
     }
   }
@@ -46,6 +52,7 @@ export default async function handler(req, res) {
       // toggle favoris
       if (existing) {
         await Wishlist.deleteOne({ _id: existing._id });
+        console.log(`Favori retiré: ${productId} pour ${userEmail}`);
         return res.json({ wished: false });
       }
 
@@ -54,8 +61,10 @@ export default async function handler(req, res) {
         product: productId,
       });
 
+      console.log(`Favori ajouté: ${productId} pour ${userEmail}`);
       return res.json({ wished: true });
     } catch (error) {
+      console.error("Erreur POST wishlist:", error);
       return res.status(500).json({ error: "Erreur serveur" });
     }
   }
@@ -78,8 +87,10 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: "Produit non trouvé" });
       }
 
+      console.log(`Favori supprimé via DELETE: ${productId} pour ${userEmail}`);
       return res.json({ success: true });
     } catch (error) {
+      console.error("Erreur DELETE wishlist:", error);
       return res.status(500).json({ error: "Erreur serveur" });
     }
   }

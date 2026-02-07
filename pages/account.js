@@ -334,27 +334,44 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true);
   const dropdownRef = useRef(null);
 
+  const fetchOrders = async () => {
+    try {
+      const ordersRes = await fetch("/api/orders");
+      if (ordersRes.ok) {
+        const ordersData = await ordersRes.json();
+        if (Array.isArray(ordersData)) {
+          setAllOrders(ordersData);
+        }
+      }
+    } catch (error) {
+      console.error("Erreur chargement commandes:", error);
+    }
+  };
+
+  const fetchWishlist = async () => {
+    try {
+      const wishlistRes = await fetch("/api/wishlist");
+      if (wishlistRes.ok) {
+        const wishlistData = await wishlistRes.json();
+        if (Array.isArray(wishlistData)) {
+          const validWishlist = wishlistData.filter(item => item.product && item.product._id);
+          setWishlist(validWishlist);
+        }
+      }
+    } catch (error) {
+      console.error("Erreur chargement favoris:", error);
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       if (status === "authenticated") {
         setLoading(true);
         try {
-          const ordersRes = await fetch("/api/orders");
-          if (ordersRes.ok) {
-            const ordersData = await ordersRes.json();
-            if (Array.isArray(ordersData)) {
-              setAllOrders(ordersData);
-            }
-          }
-
-          const wishlistRes = await fetch("/api/wishlist");
-          if (wishlistRes.ok) {
-            const wishlistData = await wishlistRes.json();
-            if (Array.isArray(wishlistData)) {
-              const validWishlist = wishlistData.filter(item => item.product && item.product._id);
-              setWishlist(validWishlist);
-            }
-          }
+          await Promise.all([
+            fetchOrders(),
+            fetchWishlist()
+          ]);
         } catch (err) {
           console.error("Erreur chargement données:", err);
           toast.error("Erreur lors du chargement des données");
@@ -367,6 +384,30 @@ export default function AccountPage() {
     };
 
     loadData();
+    
+    // Rafraîchir périodiquement les favoris (toutes les 10 secondes)
+    const intervalId = setInterval(() => {
+      if (status === "authenticated" && activeView === 'favoris') {
+        fetchWishlist();
+      }
+    }, 10000);
+    
+    return () => clearInterval(intervalId);
+  }, [status, activeView]);
+
+  // Écouter les événements de mise à jour des favoris
+  useEffect(() => {
+    const handleWishlistUpdate = () => {
+      if (status === "authenticated") {
+        fetchWishlist();
+      }
+    };
+
+    window.addEventListener('wishlist-updated', handleWishlistUpdate);
+    
+    return () => {
+      window.removeEventListener('wishlist-updated', handleWishlistUpdate);
+    };
   }, [status]);
 
   const getFilteredOrders = () => {
@@ -436,6 +477,8 @@ export default function AccountPage() {
       if (res.ok) {
         setWishlist(prev => prev.filter(item => item.product._id !== productId));
         toast.success("Produit retiré des favoris");
+        // Émettre l'événement pour mettre à jour les autres composants
+        window.dispatchEvent(new CustomEvent('wishlist-updated'));
       } else {
         const error = await res.json();
         toast.error(error.error || "Erreur lors de la suppression");
@@ -456,6 +499,11 @@ export default function AccountPage() {
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [isDropdownOpen]);
+
+  const refreshWishlist = () => {
+    fetchWishlist();
+    toast.info("Favoris rafraîchis");
+  };
 
   if (status === "loading" || loading) {
     return (
@@ -851,22 +899,42 @@ export default function AccountPage() {
           </Card>
         ) : (
           <Card>
-            <h3 style={{ fontSize: "20px", margin: '0 0 20px 0', color: '#1e293b' }}>
-              ❤️ Mes Favoris
-              {wishlist.length > 0 && (
-                <span style={{ 
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: '20px' }}>
+              <h3 style={{ fontSize: "20px", margin: 0, color: '#1e293b' }}>
+                ❤️ Mes Favoris
+                {wishlist.length > 0 && (
+                  <span style={{ 
+                    fontSize: '14px',
+                    backgroundColor: '#f1f5f9',
+                    padding: '4px 10px',
+                    borderRadius: '12px',
+                    marginLeft: '10px',
+                    fontWeight: '600',
+                    color: '#475569'
+                  }}>
+                    {wishlist.length} produit{wishlist.length > 1 ? 's' : ''}
+                  </span>
+                )}
+              </h3>
+              <button
+                onClick={refreshWishlist}
+                style={{
+                  padding: '8px 16px',
+                  background: '#f1f5f9',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
                   fontSize: '14px',
-                  backgroundColor: '#f1f5f9',
-                  padding: '4px 10px',
-                  borderRadius: '12px',
-                  marginLeft: '10px',
                   fontWeight: '600',
-                  color: '#475569'
-                }}>
-                  {wishlist.length} produit{wishlist.length > 1 ? 's' : ''}
-                </span>
-              )}
-            </h3>
+                  color: '#475569',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                ↻ Rafraîchir
+              </button>
+            </div>
 
             {wishlist.length === 0 ? (
               <EmptyState>
