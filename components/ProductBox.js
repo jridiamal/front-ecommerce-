@@ -217,35 +217,21 @@ export default function ProductBox({ _id, title, price, images = [], properties,
 
     const nextValue = !isWished;
     setIsWished(nextValue); 
-    
-    try {
+    try{
       if(nextValue) {
-        const response = await fetch("/api/wishlist", {
-          method: "POST", 
-          headers: { "Content-Type": "application/json" }, 
-          body: JSON.stringify({ productId: _id })
+        await fetch("/api/wishlist", {
+          method:"POST", 
+          headers:{"Content-Type":"application/json"}, 
+          body:JSON.stringify({product: _id})
         });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
       } else {
-        const response = await fetch(`/api/wishlist?productId=${_id}`, {
-          method: "DELETE"
+        await fetch("/api/wishlist", {
+          method:"DELETE", 
+          headers:{"Content-Type":"application/json"}, 
+          body:JSON.stringify({productId: _id})
         });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
       }
-      
       toast.success(nextValue ? "Ajouté aux favoris" : "Retiré des favoris");
-      
     } catch {
       setIsWished(!nextValue);
       toast.error("Erreur réseau");
@@ -269,10 +255,13 @@ export default function ProductBox({ _id, title, price, images = [], properties,
       return;
     }
 
+    // Get the image element and its position
     const imgElement = imageRef.current;
     if (imgElement) {
+      // Get the actual image dimensions and position
       const rect = imgElement.getBoundingClientRect();
       
+      // Trigger the animation
       triggerFlyAnimation(imgElement, {
         left: rect.left,
         top: rect.top,
@@ -281,6 +270,7 @@ export default function ProductBox({ _id, title, price, images = [], properties,
       });
     }
 
+    // Add to cart
     addProduct({
       _id,
       title,
