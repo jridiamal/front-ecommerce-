@@ -65,6 +65,56 @@ const DropdownMenu = styled.div`
   @media (min-width: 640px) { left: 0; transform: none; }
 `;
 
+const OrdersTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  @media (max-width: 800px) {
+    display: block;
+    thead { display: none; }
+    tr {
+      display: block;
+      border: 1px solid #edf2f7;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      padding: 12px;
+    }
+    td {
+      display: flex;
+      flex-direction: column;
+      border: none;
+      padding: 8px 0;
+      font-size: 14px;
+      &:not(:last-child) { border-bottom: 1px solid #f7fafc; }
+      &:before {
+        content: attr(data-label);
+        font-weight: 700;
+        color: #64748b;
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+    }
+  }
+`;
+
+const TableHeader = styled.th`
+  text-align: left;
+  padding: 12px;
+  background: #f8fafc;
+  color: #64748b;
+  border-bottom: 2px solid #e2e8f0;
+`;
+
+const TableCell = styled.td`
+  padding: 12px; 
+  border-bottom: 1px solid #f1f5f9;
+  @media (max-width: 800px) {
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+`;
+
 const WishlistGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -87,7 +137,6 @@ const WishItem = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
-  position: relative;
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 20px rgba(0,0,0,0.1);
@@ -116,7 +165,6 @@ const WishItemTitle = styled.p`
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  min-height: 40px;
 `;
 
 const WishItemPrice = styled.span`
@@ -124,6 +172,99 @@ const WishItemPrice = styled.span`
   font-weight: 700;
   color: #166534;
   margin-top: 5px;
+`;
+
+const ProductList = styled.div`
+  display: flex; 
+  flex-direction: column; 
+  gap: 10px;
+`;
+
+const ProductItem = styled.div`
+  display: flex; 
+  align-items: center; 
+  gap: 12px;
+`;
+
+const ProductImage = styled.img`
+  width: 50px; 
+  height: 50px; 
+  border-radius: 8px; 
+  object-fit: cover; 
+  flex-shrink: 0;
+`;
+
+const ProductText = styled.div`
+  p {
+    margin: 0; 
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.2;
+  }
+`;
+
+const StatusBadge = styled.span`
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-block;
+  background: ${props => 
+    props.$status === "Prête" ? "#dcfce7" : 
+    props.$status === "Récupérée" ? "#d1fae5" :
+    props.$status === "En attente" ? "#f1f5f9" : 
+    "#fee2e2"};
+  color: ${props => 
+    props.$status === "Prête" ? "#166534" : 
+    props.$status === "Récupérée" ? "#065f46" :
+    props.$status === "En attente" ? "#475569" : 
+    "#991b1b"};
+`;
+
+const CancelButton = styled.button`
+  padding: 8px 15px;
+  background: #fff1f2;
+  color: #be123c;
+  border: 1px solid #fecdd3;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+  width: 100%;
+  transition: all 0.2s;
+  &:hover {
+    background: #ffe4e6;
+  }
+  @media(min-width:768px){ 
+    width: auto; 
+    margin-top: 0;
+  }
+`;
+
+const FilterButtons = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e2e8f0;
+`;
+
+const FilterButton = styled.button`
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid ${props => props.$active ? '#2563eb' : '#cbd5e1'};
+  background: ${props => props.$active ? '#dbeafe' : 'white'};
+  color: ${props => props.$active ? '#1e40af' : '#475569'};
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  &:hover {
+    background: ${props => props.$active ? '#dbeafe' : '#f8fafc'};
+    border-color: ${props => props.$active ? '#2563eb' : '#94a3b8'};
+  }
 `;
 
 const EmptyState = styled.div`
@@ -135,52 +276,77 @@ const EmptyState = styled.div`
   margin: 20px 0;
 `;
 
-const RemoveButton = styled.button`
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: rgba(255, 255, 255, 0.9);
+const DeleteHistoryButton = styled.button`
+  background: #fee2e2;
+  color: #991b1b;
   border: 1px solid #fecaca;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 14px;
-  color: #ef4444;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  z-index: 10;
+  gap: 6px;
+  transition: all 0.2s;
   &:hover {
-    background: #fff;
-    transform: scale(1.1);
+    background: #fecaca;
   }
 `;
 
-const LoadingSpinner = styled.div`
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 2px solid #f3f3f3;
-  border-top: 2px solid #2563eb;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
+const TimeBadge = styled.div`
+  font-size: 11px;
+  color: #92400e;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #fef3c7;
+  padding: 3px 10px;
+  border-radius: 12px;
+  align-self: flex-start;
+  margin-top: 6px;
+  font-weight: 500;
 `;
+
+const calculateTimeRemaining = (createdAt) => {
+  if (!createdAt) return null;
+  
+  const created = new Date(createdAt);
+  const now = new Date();
+  const diffMs = now - created;
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  
+  if (diffHours < 24) {
+    return `Il y a ${diffHours}h`;
+  } else {
+    const diffDays = Math.floor(diffHours / 24);
+    return `Il y a ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
+  }
+};
 
 export default function AccountPage() {
   const { data: session, status } = useSession();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [allOrders, setAllOrders] = useState([]);
   const [wishlist, setWishlist] = useState([]);
   const [activeView, setActiveView] = useState('orders');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
-  const [removingId, setRemovingId] = useState(null);
   const dropdownRef = useRef(null);
+
+  const fetchOrders = async () => {
+    try {
+      const ordersRes = await fetch("/api/orders");
+      if (ordersRes.ok) {
+        const ordersData = await ordersRes.json();
+        if (Array.isArray(ordersData)) {
+          setAllOrders(ordersData);
+        }
+      }
+    } catch (error) {
+      console.error("Erreur chargement commandes:", error);
+    }
+  };
 
   const fetchWishlist = async () => {
     try {
@@ -188,28 +354,12 @@ export default function AccountPage() {
       if (wishlistRes.ok) {
         const wishlistData = await wishlistRes.json();
         if (Array.isArray(wishlistData)) {
-          // Filtrer les éléments invalides et formater les données
-          const validWishlist = wishlistData
-            .filter(item => item && item.product && item.product._id)
-            .map(item => ({
-              ...item,
-              product: {
-                ...item.product,
-                price: item.product.price || 0,
-                title: item.product.title || "Produit sans nom",
-                images: item.product.images || ["/placeholder.png"]
-              }
-            }));
-          
-          console.log("Wishlist chargée:", validWishlist.length, "produits");
+          const validWishlist = wishlistData.filter(item => item.product && item.product._id);
           setWishlist(validWishlist);
         }
-      } else {
-        console.error("Erreur de réponse API wishlist:", await wishlistRes.text());
       }
     } catch (error) {
       console.error("Erreur chargement favoris:", error);
-      toast.error("Erreur lors du chargement des favoris");
     }
   };
 
@@ -218,7 +368,10 @@ export default function AccountPage() {
       if (status === "authenticated") {
         setLoading(true);
         try {
-          await fetchWishlist();
+          await Promise.all([
+            fetchOrders(),
+            fetchWishlist()
+          ]);
         } catch (err) {
           console.error("Erreur chargement données:", err);
           toast.error("Erreur lors du chargement des données");
@@ -231,12 +384,23 @@ export default function AccountPage() {
     };
 
     loadData();
-  }, [status]);
+    
+    // Rafraîchir périodiquement les favoris (toutes les 10 secondes)
+    const intervalId = setInterval(() => {
+      if (status === "authenticated" && activeView === 'favoris') {
+        fetchWishlist();
+      }
+    }, 10000);
+    
+    return () => clearInterval(intervalId);
+  }, [status, activeView]);
 
   // Écouter les événements de mise à jour des favoris
   useEffect(() => {
     const handleWishlistUpdate = () => {
-      fetchWishlist();
+      if (status === "authenticated") {
+        fetchWishlist();
+      }
     };
 
     window.addEventListener('wishlist-updated', handleWishlistUpdate);
@@ -244,12 +408,67 @@ export default function AccountPage() {
     return () => {
       window.removeEventListener('wishlist-updated', handleWishlistUpdate);
     };
-  }, []);
+  }, [status]);
+
+  const getFilteredOrders = () => {
+    if (!Array.isArray(allOrders)) return [];
+    
+    if (statusFilter === 'all') return allOrders;
+    if (statusFilter === 'pending') return allOrders.filter(o => o.status === "En attente");
+    if (statusFilter === 'ready') return allOrders.filter(o => o.status === "Prête");
+    if (statusFilter === 'cancelled') return allOrders.filter(o => o.status === "Annulée");
+    if (statusFilter === 'delivered') return allOrders.filter(o => o.status === "Récupérée");
+    
+    return allOrders;
+  };
+
+  const filteredOrders = getFilteredOrders();
+
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir annuler cette commande ?")) return;
+    
+    try {
+      const res = await fetch("/api/orders", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId })
+      });
+      
+      if (res.ok) {
+        toast.success("Commande annulée avec succès");
+        setAllOrders(prev => prev.map(order => 
+          order._id === orderId ? { ...order, status: "Annulée" } : order
+        ));
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Erreur lors de l'annulation");
+      }
+    } catch (err) { 
+      console.error("Erreur annulation:", err);
+      toast.error("Erreur réseau"); 
+    }
+  };
+
+  const handleDeleteHistory = async () => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer l'historique des commandes terminées ?")) return;
+    
+    try {
+      const res = await fetch("/api/historique", { method: "DELETE" });
+      
+      if (res.ok) {
+        setAllOrders(prev => prev.filter(order => order.status === "En attente"));
+        toast.success("Historique supprimé avec succès");
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Erreur lors de la suppression");
+      }
+    } catch (err) { 
+      console.error("Erreur suppression historique:", err);
+      toast.error("Erreur réseau"); 
+    }
+  };
 
   const handleRemoveWishlistItem = async (productId) => {
-    if (!productId) return;
-    
-    setRemovingId(productId);
     try {
       const res = await fetch(`/api/wishlist?productId=${productId}`, {
         method: "DELETE",
@@ -266,11 +485,20 @@ export default function AccountPage() {
       }
     } catch (err) {
       console.error("Erreur suppression favori:", err);
-      toast.error("Erreur réseau");
-    } finally {
-      setRemovingId(null);
+      toast.error("Erreur lors de la suppression");
     }
   };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isDropdownOpen && dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [isDropdownOpen]);
 
   const refreshWishlist = () => {
     fetchWishlist();
@@ -379,6 +607,15 @@ export default function AccountPage() {
                     }}
                   >
                     📋 Mes Commandes
+                    <span style={{ 
+                      fontSize: '12px',
+                      backgroundColor: '#3b82f6',
+                      color: 'white',
+                      padding: '2px 8px',
+                      borderRadius: '12px'
+                    }}>
+                      {allOrders.length}
+                    </span>
                   </button>
 
                   <button
@@ -440,15 +677,227 @@ export default function AccountPage() {
                 Bonjour, {session.user?.name || session.user?.email?.split('@')[0]}
               </h2>
               <p style={{ margin: '5px 0 0 0', color: '#64748b', fontSize: '14px' }}>
-                {activeView === 'favoris' && wishlist.length > 0 
-                  ? `${wishlist.length} produit${wishlist.length > 1 ? 's' : ''} favori${wishlist.length > 1 ? 's' : ''}`
-                  : "Bienvenue sur votre compte"}
+                {allOrders.length > 0 ? (
+                  `Vous avez ${allOrders.length} commande${allOrders.length > 1 ? 's' : ''}`
+                ) : (
+                  "Bienvenue sur votre compte"
+                )}
               </p>
             </div>
           </ProfileSection>
         </Card>
 
-        {activeView === 'favoris' ? (
+        {activeView === 'orders' ? (
+          <Card>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: '20px' }}>
+              <h3 style={{ fontSize: "20px", margin: 0, color: '#1e293b' }}>📋 Mes Commandes</h3>
+              
+              {allOrders.filter(o => ["Prête", "Annulée", "Récupérée"].includes(o.status)).length > 0 && (
+                <DeleteHistoryButton onClick={handleDeleteHistory}>
+                  🗑️ Supprimer l'historique
+                </DeleteHistoryButton>
+              )}
+            </div>
+
+            <FilterButtons>
+              <FilterButton 
+                $active={statusFilter === 'all'}
+                onClick={() => setStatusFilter('all')}
+              >
+                Toutes ({allOrders.length})
+              </FilterButton>
+              <FilterButton 
+                $active={statusFilter === 'pending'}
+                onClick={() => setStatusFilter('pending')}
+              >
+                En attente ({allOrders.filter(o => o.status === "En attente").length})
+              </FilterButton>
+              <FilterButton 
+                $active={statusFilter === 'ready'}
+                onClick={() => setStatusFilter('ready')}
+              >
+                Prêtes ({allOrders.filter(o => o.status === "Prête").length})
+              </FilterButton>
+              
+              <FilterButton 
+                $active={statusFilter === 'cancelled'}
+                onClick={() => setStatusFilter('cancelled')}
+              >
+                Annulées ({allOrders.filter(o => o.status === "Annulée").length})
+              </FilterButton>
+              <FilterButton 
+                $active={statusFilter === 'delivered'}
+                onClick={() => setStatusFilter('delivered')}
+              >
+                Récupérée ({allOrders.filter(o => o.status === "Récupérée").length})
+              </FilterButton>
+            </FilterButtons>
+
+            {filteredOrders.length === 0 ? (
+              <EmptyState>
+                {statusFilter === 'all' ? (
+                  <>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>📦</div>
+                    <h4 style={{ marginBottom: '8px', color: '#334155' }}>Aucune commande</h4>
+                    <p style={{ marginBottom: '20px' }}>Vous n'avez pas encore passé de commande.</p>
+                    <Link href="/products">
+                      <button style={{
+                        padding: '10px 20px',
+                        background: '#2563eb',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontWeight: '600'
+                      }}>
+                        Voir les produits
+                      </button>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
+                    <p>Aucune commande avec ce statut.</p>
+                    <button 
+                      onClick={() => setStatusFilter('all')}
+                      style={{
+                        padding: '8px 16px',
+                        background: '#f1f5f9',
+                        color: '#475569',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        marginTop: '10px'
+                      }}
+                    >
+                      Voir toutes les commandes
+                    </button>
+                  </>
+                )}
+              </EmptyState>
+            ) : (
+              <OrdersTable>
+                <thead>
+                  <tr>
+                    <TableHeader>N° Commande</TableHeader>
+                    <TableHeader>Date</TableHeader>
+                    <TableHeader>Statut</TableHeader>
+                    <TableHeader>Produits</TableHeader>
+                    <TableHeader>Total</TableHeader>
+                    <TableHeader>Actions</TableHeader>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredOrders.map(order => {
+                    const timeInfo = calculateTimeRemaining(order.createdAt);
+                    return (
+                      <tr key={order._id}>
+                        <TableCell data-label="N° Commande">
+                          <span style={{ 
+                            fontSize: '12px', 
+                            fontFamily: 'monospace',
+                            color: '#64748b',
+                            fontWeight: '500'
+                          }}>
+                            #{order._id?.toString().slice(-8) || 'N/A'}
+                          </span>
+                        </TableCell>
+                        <TableCell data-label="Date">
+                          {order.createdAt ? (
+                            new Date(order.createdAt).toLocaleDateString('fr-FR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric'
+                            })
+                          ) : 'Date inconnue'}
+                        </TableCell>
+                        <TableCell data-label="Statut">
+                          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                            <StatusBadge $status={order.status || "Inconnu"}>
+                              {order.status || "Inconnu"}
+                            </StatusBadge>
+                            {order.status === "En attente" && timeInfo && (
+                              <TimeBadge>
+                                <span style={{ fontSize: "10px" }}>⏳</span>
+                                {timeInfo}
+                              </TimeBadge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell data-label="Produits">
+                          <ProductList>
+                            {Array.isArray(order.line_items) && order.line_items.length > 0 ? (
+                              order.line_items.map((item, i) => (
+                                <ProductItem key={i}>
+                                  <ProductImage 
+                                    src={item.image || item.price_data?.product_data?.images?.[0] || "/placeholder.png"} 
+                                    alt={item.name} 
+                                    onError={(e) => {
+                                      e.target.src = "/placeholder.png";
+                                    }}
+                                  />
+                                  <ProductText>
+                                    <p><b>{item.name || item.price_data?.product_data?.name || 'Produit'}</b></p>
+                                    <p>Qté: {item.quantity} × {item.price || (item.price_data?.unit_amount/100) || 0} DT</p>
+                                  </ProductText>
+                                </ProductItem>
+                              ))
+                            ) : (
+                              <p style={{ fontSize: '12px', color: '#64748b' }}>Aucun produit</p>
+                            )}
+                          </ProductList>
+                        </TableCell>
+                        <TableCell data-label="Total">
+                          <strong style={{ fontSize: '15px' }}>{order.total || 0} DT</strong>
+                        </TableCell>
+                        <TableCell data-label="Actions">
+                          {order.status === "En attente" ? (
+                            <CancelButton onClick={() => handleCancelOrder(order._id)}>
+                              Annuler
+                            </CancelButton>
+                          ) : order.status === "Prête" ? (
+                            <button
+                              style={{
+                                padding: '8px 15px',
+                                background: '#dcfce7',
+                                color: '#166534',
+                                border: '1px solid #86efac',
+                                borderRadius: '8px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                width: '100%'
+                              }}
+                              onClick={() => toast.info("Votre commande est prête pour récupération")}
+                            >
+                              À récupérer
+                            </button>
+                          ) : order.status === "Annulée" ? (
+                            <span style={{ 
+                              fontSize: '12px', 
+                              color: '#991b1b',
+                              fontWeight: '600'
+                            }}>
+                              ❌ Annulée
+                            </span>
+                          ) : (
+                            <span style={{ 
+                              fontSize: '12px', 
+                              color: '#065f46',
+                              fontWeight: '600'       
+                            }}>
+                              ✅ Récupérée
+                            </span>
+                          )}
+                        </TableCell>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </OrdersTable>
+            )}
+          </Card>
+        ) : (
           <Card>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: '20px' }}>
               <h3 style={{ fontSize: "20px", margin: 0, color: '#1e293b' }}>
@@ -510,70 +959,54 @@ export default function AccountPage() {
               </EmptyState>
             ) : (
               <WishlistGrid>
-                {wishlist.map(item => {
-                  const product = item.product;
-                  return (
-                    <div key={item._id} style={{ position: 'relative' }}>
-                      <Link href={`/product/${product._id}`} style={{ textDecoration: 'none' }}>
-                        <WishItem>
-                          <WishItemImage 
-                            src={product.images[0] || "/placeholder.png"} 
-                            alt={product.title}
-                            onError={(e) => {
-                              e.target.src = "/placeholder.png";      
-                            }}
-                          />
-                          <WishItemTitle>{product.title}</WishItemTitle>
-                          {product.price > 0 && (
-                            <WishItemPrice>{product.price} DT</WishItemPrice>
-                          )}
-                        </WishItem>
-                      </Link>
-                      <RemoveButton
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleRemoveWishlistItem(product._id);
-                        }}
-                        disabled={removingId === product._id}
-                        title="Retirer des favoris"
-                      >
-                        {removingId === product._id ? (
-                          <LoadingSpinner />
-                        ) : (
-                          '×'
+                {wishlist.map(item => (
+                  <div key={item._id} style={{ position: 'relative' }}>
+                    <Link href={`/product/${item.product._id}`} style={{ textDecoration: 'none' }}>
+                      <WishItem>
+                        <WishItemImage 
+                          src={item.product.images?.[0] || "/placeholder.png"} 
+                          alt={item.product.title}
+                          onError={(e) => {
+                            e.target.src = "/placeholder.png";      
+                          }}
+                        />
+                        <WishItemTitle>{item.product.title || "Produit sans nom"}</WishItemTitle>
+                        {item.product.price && (
+                          <WishItemPrice>{item.product.price} DT</WishItemPrice>
                         )}
-                      </RemoveButton>
-                    </div>
-                  );
-                })}
+                      </WishItem>
+                    </Link>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleRemoveWishlistItem(item.product._id);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        border: '1px solid #fecaca',
+                        borderRadius: '50%',
+                        width: '28px',
+                        height: '28px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        color: '#ef4444',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                      }}
+                      title="Retirer des favoris"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
               </WishlistGrid>
             )}
-          </Card>
-        ) : (
-          <Card>
-            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
-              <h3 style={{ marginBottom: '16px', color: '#1e293b' }}>Mes Commandes</h3>
-              <p style={{ marginBottom: '24px', color: '#64748b' }}>
-                Pour voir vos commandes, vous devez être dans la section "Commandes".
-              </p>
-              <button
-                onClick={() => setActiveView('orders')}
-                style={{
-                  padding: '12px 24px',
-                  background: '#2563eb',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontSize: '16px'
-                }}
-              >
-                Voir mes commandes
-              </button>
-            </div>
           </Card>
         )}
 
