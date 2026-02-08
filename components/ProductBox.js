@@ -163,7 +163,7 @@ const Price = styled.div`
 export default function ProductBox({ _id, title, price, images = [], properties, outOfStock, wished = false }) {
   const { addProduct } = useContext(CartContext);
   const { triggerFlyAnimation } = useContext(AnimationContext);
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const imageRef = useRef(null);
 
   const colorVariants = properties?.colorVariants || [];
@@ -172,6 +172,21 @@ export default function ProductBox({ _id, title, price, images = [], properties,
   const [selectedColor, setSelectedColor] = useState(null);
   const [currentImage, setCurrentImage] = useState(images[0]);
   const [hovered, setHovered] = useState(false);
+  const [isWished, setIsWished] = useState(wished);
+
+  // --- NOUVEAU : Synchronisation avec la base de données après rafraîchissement ---
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetch('/api/wishlist')
+        .then(res => res.json())
+        .then(data => {
+          // On vérifie si l'ID de ce produit est présent dans la liste des favoris de l'utilisateur
+          const isCurrentlyInWishlist = data.some(item => item.product._id === _id);
+          setIsWished(isCurrentlyInWishlist);
+        })
+        .catch(err => console.error("Erreur lors de la récupération des favoris:", err));
+    }
+  }, [status, _id]);
 
   const currentVariant = selectedColor 
     ? colorVariants.find(v => v.color === selectedColor) 
@@ -186,12 +201,6 @@ export default function ProductBox({ _id, title, price, images = [], properties,
   const canAddToCart = !isProductOutOfStock && 
     (!selectedColor || !isCurrentVariantOutOfStock) &&
     (!currentVariant || !currentVariant.outOfStock);
-  
-  const [isWished, setIsWished] = useState(wished);
-
-  useEffect(() => {
-    setIsWished(wished);
-  }, [wished]);
 
   useEffect(() => {
     let interval;
@@ -226,46 +235,34 @@ export default function ProductBox({ _id, title, price, images = [], properties,
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        throw new Error("Erreur serveur lors de la mise à jour des favoris");
       }
       
-      const data = await response.json();
-      
-      // Émettre un événement personnalisé pour notifier AccountPage
+      // Notifier les autres pages (comme AccountPage) qu'il y a eu un changement
       window.dispatchEvent(new CustomEvent('wishlist-updated'));
       
       toast.success(nextValue ? "Ajouté aux favoris" : "Retiré des favoris");
       
     } catch (error) {
-      // Revenir à l'état précédent en cas d'erreur
-      setIsWished(!nextValue);
-      console.error("Erreur wishlist:", error);
-      toast.error(error.message || "Erreur réseau");
+      setIsWished(!nextValue); // Retour à l'état précédent en cas d'échec
+      toast.error("Erreur réseau");
     }
   }
 
   function handleAddToCart(e) {
     e.preventDefault();
-    
     if (isProductOutOfStock) {
       toast.error("Ce produit est épuisé");
       return;
     }
-    
     if (!canAddToCart) {
-      if (currentVariant?.outOfStock) {
-        toast.error(`La couleur ${currentVariant.color} est épuisée`);
-      } else {
-        toast.error("Produit épuisé");
-      }
+      toast.error("Option épuisée");
       return;
     }
 
     const imgElement = imageRef.current;
     if (imgElement) {
       const rect = imgElement.getBoundingClientRect();
-      
       triggerFlyAnimation(imgElement, {
         left: rect.left,
         top: rect.top,

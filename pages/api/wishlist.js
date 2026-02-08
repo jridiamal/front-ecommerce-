@@ -1,48 +1,45 @@
 import { mongooseConnect } from "@/lib/mongoose";
-import Wishlist from "@/models/WishedProduct";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "./auth/[...nextauth]";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
+import { WishedProduct } from "@/models/WishedProduct";
+import { Product } from "@/models/Product";
 
-export default async function handler(req, res) {
+export default async function handle(req, res) {
   await mongooseConnect();
-
   const session = await getServerSession(req, res, authOptions);
-  if (!session || !session.user?.email) {
-    return res.status(401).json({ error: "Non authentifié" });
+
+  if (!session) {
+    return res.status(401).json({ message: "Non authentifié" });
   }
 
-  const userEmail = session.user.email;
+  const { user } = session;
 
+  // GET : Récupérer tous les produits favoris de l'utilisateur
   if (req.method === "GET") {
-    try {
-      const wishlist = await Wishlist.find({ userEmail }).populate("product");
-      return res.status(200).json(
-        wishlist.map(w => ({
-          _id: w._id,
-          product: w.product,
-          wished: true
-        }))
-      );
-    } catch (err) {
-      return res.status(500).json({ error: "Erreur lors de la récupération" });
-    }
+    const wishedProducts = await WishedProduct.find({
+      userEmail: user.email,
+    }).populate("product"); // Remplit les détails du produit
+    res.json(wishedProducts);
   }
 
+  // POST : Ajouter ou Supprimer un favori (Toggle)
   if (req.method === "POST") {
-    const { product } = req.body;
-    if (!product) return res.status(400).json({ error: "ID produit manquant" });
+    const { productId } = req.body;
 
-    const existing = await Wishlist.findOne({ userEmail, product });
+    const existingWish = await WishedProduct.findOne({
+      userEmail: user.email,
+      product: productId,
+    });
 
-    if (existing) {
-      await Wishlist.deleteOne({ _id: existing._id });
-      return res.status(200).json({ wished: false });
+    if (existingWish) {
+      await WishedProduct.findByIdAndDelete(existingWish._id);
+      res.json({ message: "Retiré des favoris", status: "removed" });
     } else {
-      await Wishlist.create({ userEmail, product });
-      return res.status(200).json({ wished: true });
+      await WishedProduct.create({
+        userEmail: user.email,
+        product: productId,
+      });
+      res.json({ message: "Ajouté aux favoris", status: "added" });
     }
   }
-
-  res.setHeader("Allow", ["GET", "POST"]);
-  return res.status(405).end(`Method ${req.method} Not Allowed`);
 }
