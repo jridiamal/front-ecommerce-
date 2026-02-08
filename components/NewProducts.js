@@ -359,7 +359,6 @@ export async function getServerSideProps({ query }) {
   await mongooseConnect();
   const product = await Product.findById(query.id).lean();
   
-  // Utilisation de $sample pour l'aléatoire et augmentation à 8 produits
   const recommended = await Product.aggregate([
     { $match: { _id: { $ne: product._id }, category: product.category } },
     { $sample: { size: 8 } } 
