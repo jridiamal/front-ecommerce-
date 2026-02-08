@@ -6,21 +6,13 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Animation du badge
-const pulse = keyframes`
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.7; }
-  100% { transform: scale(1); opacity: 1; }
-`;
+// --- STYLED COMPONENTS ---
 
 const Section = styled.section`
   padding: 40px 0;
   background: #fdfdfd;
-  overflow: hidden; /* Évite les scrollbars parasites pendant l'animation */
-
-  @media screen and (min-width: 768px) {
-    padding: 60px 0;
-  }
+  overflow: hidden;
+  @media screen and (min-width: 768px) { padding: 80px 0; }
 `;
 
 const HeaderRow = styled.div`
@@ -30,131 +22,118 @@ const HeaderRow = styled.div`
   margin-bottom: 30px;
   border-bottom: 1px solid #eee;
   padding-bottom: 20px;
-
   @media screen and (min-width: 768px) {
     flex-direction: row;
-    align-items: flex-end;
+    align-items: center;
     justify-content: space-between;
-    margin-bottom: 40px;
   }
 `;
 
-const TitleGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-`;
-
-const Badge = styled.span`
-  background: #e63946;
-  color: white;
-  font-size: 10px;
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-weight: bold;
-  animation: ${pulse} 2s infinite;
-`;
-
-const FilterContainer = styled.div`
+const FilterViewport = styled.div`
   position: relative;
   width: 100%;
-  overflow: visible;
+  overflow: hidden;
+  cursor: grab;
+  &:active { cursor: grabbing; }
+
+  /* Gradient indicateur de scroll à droite */
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0; bottom: 0;
+    width: 50px;
+    background: linear-gradient(to left, #fdfdfd, transparent);
+    pointer-events: none;
+    z-index: 2;
+    opacity: ${props => props.$canScroll ? 1 : 0};
+    transition: opacity 0.3s;
+  }
 
   @media screen and (min-width: 768px) {
     width: auto;
+    &::after { display: none; }
   }
 `;
 
 const FilterWrapper = styled(motion.div)`
   display: flex;
   gap: 10px;
-  cursor: grab;
   padding: 5px 0;
-
-  &:active {
-    cursor: grabbing;
-  }
+  width: max-content; /* Important pour le calcul du drag */
 
   @media screen and (min-width: 768px) {
+    width: auto;
     flex-wrap: wrap;
     justify-content: flex-end;
-    transform: none !important; /* Désactive le drag sur desktop si souhaité */
   }
 `;
 
 const FilterChip = styled(motion.button)`
   position: relative;
   background: transparent;
-  color: ${props => props.active ? 'white' : '#666'};
-  border: 1px solid ${props => props.active ? '#1f387e' : '#ddd'};
-  padding: 8px 20px;
-  border-radius: 25px;
+  color: ${props => props.$active ? 'white' : '#555'};
+  border: 1px solid ${props => props.$active ? '#1f387e' : '#e0e0e0'};
+  padding: 10px 22px;
+  border-radius: 50px;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 500;
   white-space: nowrap;
-  transition: color 0.3s ease, border-color 0.3s ease;
   z-index: 1;
-
-  &:hover {
-    border-color: #1f387e;
-  }
+  transition: color 0.2s;
 `;
 
 const ActiveBg = styled(motion.div)`
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   background: #1f387e;
-  border-radius: 23px;
+  border-radius: 50px;
   z-index: -1;
-`;
-
-const Title = styled.h2`
-  font-size: 1.5rem;
-  margin: 0;
-  font-weight: 800;
-  color: #121212;
 `;
 
 const StyledButton = styled.button`
   background: #3d47ddff;
   color: white;
   border: none;
-  padding: 14px 28px;
+  padding: 16px 40px;
   border-radius: 50px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 12px;
-  transition: all 0.4s;
-  box-shadow: 0 4px 15px rgba(0, 47, 202, 0.4);
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(0, 47, 202, 0.3);
+  margin: 40px auto 0;
   
   &:hover {
     background: #000;
-    transform: translateY(-3px);
+    transform: translateY(-2px);
   }
 `;
 
-const ButtonWrapper = styled.div`
-  display: flex;
-  justify-content: center;
-  margin-top: 30px;
-`;
+// --- COMPONENT ---
 
 export default function NewProducts({ products }) {
   const [categories, setCategories] = useState([]);
   const [activeFilter, setActiveFilter] = useState("all");
   const [displayProducts, setDisplayProducts] = useState(products);
+  const [dragLimit, setDragLimit] = useState(0);
   
-  const constraintsRef = useRef(null);
+  const viewportRef = useRef(null);
+  const wrapperRef = useRef(null);
 
   useEffect(() => {
     axios.get('/api/categories').then(res => setCategories(res.data));
   }, []);
+
+  // Calcul de la limite de drag
+  useEffect(() => {
+    if (wrapperRef.current && viewportRef.current) {
+      const width = wrapperRef.current.offsetWidth - viewportRef.current.offsetWidth;
+      setDragLimit(width > 0 ? -width : 0);
+    }
+  }, [categories]);
 
   useEffect(() => {
     if (activeFilter === "all") {
@@ -171,51 +150,56 @@ export default function NewProducts({ products }) {
     <Section>
       <Center>
         <HeaderRow>
-          <TitleGroup>
-            <Title>Nouveautés</Title>
-            <Badge>New</Badge>
-          </TitleGroup>
+          <h2 style={{ fontSize: '1.8rem', margin: 0, fontWeight: 800 }}>Nouveautés</h2>
           
-          <FilterContainer ref={constraintsRef}>
+          <FilterViewport ref={viewportRef} $canScroll={dragLimit < 0}>
             <FilterWrapper 
+              ref={wrapperRef}
               drag="x"
-              dragConstraints={constraintsRef}
-              dragElastic={0.2}
+              dragConstraints={{ right: 0, left: dragLimit }}
+              dragElastic={0.1}
               whileTap={{ cursor: "grabbing" }}
             >
-              {allFilters.map(cat => (
+              {allFilters.map((cat) => (
                 <FilterChip 
                   key={cat._id}
-                  active={activeFilter === cat._id} 
+                  $active={activeFilter === cat._id} 
                   onClick={() => setActiveFilter(cat._id)}
-                  whileHover={{ y: -1 }}
                   whileTap={{ scale: 0.95 }}
                 >
                   {cat.name}
                   {activeFilter === cat._id && (
                     <ActiveBg 
-                      layoutId="activeFilter"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      layoutId="activePill"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
                   )}
                 </FilterChip>
               ))}
             </FilterWrapper>
-          </FilterContainer>
+          </FilterViewport>
         </HeaderRow>
 
-        <ProductsGrid products={displayProducts} />
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeFilter}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ProductsGrid products={displayProducts} />
+          </motion.div>
+        </AnimatePresence>
 
-        <ButtonWrapper>
-          <Link href="/products" passHref legacyBehavior>
-            <StyledButton>
-              Voir toute la librairie
-              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-            </StyledButton>
-          </Link>
-        </ButtonWrapper>
+        <Link href="/products" passHref legacyBehavior>
+          <StyledButton>
+            Voir toute la librairie
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </StyledButton>
+        </Link>
       </Center>
     </Section>
   );
