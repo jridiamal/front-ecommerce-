@@ -4,203 +4,275 @@ import ProductsGrid from "@/components/ProductsGrid";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion"; // Ajouté
 
-// --- STYLED COMPONENTS ---
+// Animation du badge
+const pulse = keyframes`
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 1; }
+`;
 
 const Section = styled.section`
-  padding: 40px 0;
-  background: #fdfdfd;
-  overflow: hidden;
-  @media screen and (min-width: 768px) { padding: 80px 0; }
+  padding: 40px 0;
+  background: #fdfdfd;
+
+  @media screen and (min-width: 768px) {
+    padding: 60px 0;
+  }
+
+  @media screen and (min-width: 1200px) {
+    padding: 80px 0;
+  }
 `;
 
 const HeaderRow = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  margin-bottom: 30px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 20px;
-  @media screen and (min-width: 768px) {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 30px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 20px;
+
+  @media screen and (min-width: 768px) {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 40px;
+  }
 `;
 
-const FilterViewport = styled.div`
-  position: relative;
-  width: 100%;
-  overflow: hidden;
-  cursor: grab;
-  &:active { cursor: grabbing; }
-
-  /* Gradient indicateur de scroll à droite */
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0; right: 0; bottom: 0;
-    width: 50px;
-    background: linear-gradient(to left, #fdfdfd, transparent);
-    pointer-events: none;
-    z-index: 2;
-    opacity: ${props => props.$canScroll ? 1 : 0};
-    transition: opacity 0.3s;
-  }
-
-  @media screen and (min-width: 768px) {
-    width: auto;
-    &::after { display: none; }
-  }
+const TitleGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 `;
 
+const Badge = styled.span`
+  background: #e63946;
+  color: white;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-weight: bold;
+  animation: ${pulse} 2s infinite;
+  
+  @media screen and (min-width: 375px) {
+    font-size: 11px;
+  }
+  
+  @media screen and (min-width: 768px) {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+`;
+
+const FilterChip = styled.button`
+  background: ${props => props.active ? '#1f387e' : 'white'};
+  color: ${props => props.active ? 'white' : '#666'};
+  border: 1px solid ${props => props.active ? '#1f387e' : '#ddd'};
+  padding: 8px 16px;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  font-size: 14px;
+  
+  &:hover { 
+    border-color: #1f387e; 
+    transform: translateY(-1px); 
+  }
+  
+  @media screen and (min-width: 768px) {
+    padding: 8px 20px;
+    font-size: 15px;
+  }
+`;
+
+// Changé en motion.div pour le swipe
 const FilterWrapper = styled(motion.div)`
-  display: flex;
-  gap: 10px;
-  padding: 5px 0;
-  width: max-content; /* Important pour le calcul du drag */
-
-  @media screen and (min-width: 768px) {
+  display: flex;
+  gap: 8px;
+  padding: 10px 0 5px 0;
+  width: max-content; /* Nécessaire pour le swipe */
+  
+  @media screen and (min-width: 768px) {
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     width: auto;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    transform: none !important;
+  }
+`;
+
+// Conteneur pour limiter le swipe
+const SwipeContainer = styled.div`
+  overflow: hidden;
+  width: 100%;
+  @media screen and (min-width: 768px) {
+    overflow: visible;
   }
 `;
 
-const FilterChip = styled(motion.button)`
-  position: relative;
-  background: transparent;
-  color: ${props => props.$active ? 'white' : '#555'};
-  border: 1px solid ${props => props.$active ? '#1f387e' : '#e0e0e0'};
-  padding: 10px 22px;
-  border-radius: 50px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  white-space: nowrap;
-  z-index: 1;
-  transition: color 0.2s;
-`;
+const Title = styled.h2`
+  font-size: 1.4rem;
+  margin: 0;
+  font-weight: 800;
+  color: #121212;
+  line-height: 1.2;
 
-const ActiveBg = styled(motion.div)`
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: #1f387e;
-  border-radius: 50px;
-  z-index: -1;
+  @media screen and (min-width: 375px) {
+    font-size: 1.5rem;
+  }
+
+  @media screen and (min-width: 768px) {
+    font-size: 1.8rem;
+  }
+
+  @media screen and (min-width: 1024px) {
+    font-size: 2rem;
+  }
 `;
 
 const StyledButton = styled.button`
-  background: #3d47ddff;
-  color: white;
-  border: none;
-  padding: 16px 40px;
-  border-radius: 50px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  transition: all 0.3s;
-  box-shadow: 0 4px 15px rgba(0, 47, 202, 0.3);
-  margin: 40px auto 0;
-  
-  &:hover {
-    background: #000;
-    transform: translateY(-2px);
-  }
+  background: #3d47ddff;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 50px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.4s;
+  box-shadow: 0 4px 15px rgba(0, 47, 202, 0.4);
+  width: 100%;
+  justify-content: center;
+  font-size: 15px;
+
+  @media screen and (min-width: 375px) {
+    width: fit-content;
+    padding: 14px 28px;
+  }
+
+  @media screen and (min-width: 768px) {
+    padding: 16px 45px;
+    font-size: 16px;
+    gap: 15px;
+  }
+
+  &:hover { 
+    background: #000;
+    transform: translateY(-3px); 
+    svg { transform: translateX(8px); }
+  }
+  
+  svg { 
+    transition: transform 0.3s ease;
+    width: 18px;
+    height: 18px;
+    
+    @media screen and (min-width: 768px) {
+      width: 20px;
+      height: 20px;
+    }
+  }
 `;
 
-// --- COMPONENT ---
+const ButtonWrapper = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+  width: 100%;
+  
+  @media screen and (min-width: 768px) {
+    margin-top: 40px;
+  }
+`;
 
 export default function NewProducts({ products }) {
-  const [categories, setCategories] = useState([]);
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [displayProducts, setDisplayProducts] = useState(products);
-  const [dragLimit, setDragLimit] = useState(0);
-  
-  const viewportRef = useRef(null);
-  const wrapperRef = useRef(null);
+  const [categories, setCategories] = useState([]);
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [displayProducts, setDisplayProducts] = useState(products);
+  const [dragConstraints, setDragConstraints] = useState(0); // Pour le swipe dynamique
 
-  useEffect(() => {
-    axios.get('/api/categories').then(res => setCategories(res.data));
-  }, []);
+  const filterWrapperRef = useRef(null);
+  const containerRef = useRef(null);
 
-  // Calcul de la limite de drag
+  useEffect(() => {
+    axios.get('/api/categories').then(res => setCategories(res.data));
+  }, []);
+
+  // Calculer si on doit swiper (si plus de 5 ou si ça dépasse)
   useEffect(() => {
-    if (wrapperRef.current && viewportRef.current) {
-      const width = wrapperRef.current.offsetWidth - viewportRef.current.offsetWidth;
-      setDragLimit(width > 0 ? -width : 0);
+    if (filterWrapperRef.current && containerRef.current) {
+      const wrapperWidth = filterWrapperRef.current.offsetWidth;
+      const containerWidth = containerRef.current.offsetWidth;
+      setDragConstraints(containerWidth - wrapperWidth);
     }
   }, [categories]);
 
-  useEffect(() => {
-    if (activeFilter === "all") {
-      setDisplayProducts(products.slice(0, 8));
-    } else {
-      const filtered = products.filter(p => p.category === activeFilter);
-      setDisplayProducts(filtered);
-    }
-  }, [activeFilter, products]);
+  useEffect(() => {
+    if (activeFilter === "all") {
+      setDisplayProducts(products.slice(0, 8));
+    } else {
+      const filtered = products.filter(p => p.category === activeFilter);
+      setDisplayProducts(filtered);
+    }
+  }, [activeFilter, products]);
 
-  const allFilters = [{ _id: 'all', name: 'Tous' }, ...categories];
-
-  return (
-    <Section>
-      <Center>
-        <HeaderRow>
-          <h2 style={{ fontSize: '1.8rem', margin: 0, fontWeight: 800 }}>Nouveautés</h2>
-          
-          <FilterViewport ref={viewportRef} $canScroll={dragLimit < 0}>
-            <FilterWrapper 
-              ref={wrapperRef}
-              drag="x"
-              dragConstraints={{ right: 0, left: dragLimit }}
+  return (
+    <Section>
+      <Center>
+        <HeaderRow>
+          <TitleGroup>
+            <Title>Nouveautés</Title>
+            <Badge>New</Badge>
+          </TitleGroup>
+          
+          <SwipeContainer ref={containerRef}>
+            <FilterWrapper 
+              ref={filterWrapperRef}
+              drag={categories.length > 5 ? "x" : false} // Swipe si > 5
+              dragConstraints={{ left: dragConstraints, right: 0 }}
               dragElastic={0.1}
-              whileTap={{ cursor: "grabbing" }}
             >
-              {allFilters.map((cat) => (
-                <FilterChip 
-                  key={cat._id}
-                  $active={activeFilter === cat._id} 
-                  onClick={() => setActiveFilter(cat._id)}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {cat.name}
-                  {activeFilter === cat._id && (
-                    <ActiveBg 
-                      layoutId="activePill"
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                </FilterChip>
-              ))}
-            </FilterWrapper>
-          </FilterViewport>
-        </HeaderRow>
+              <FilterChip 
+                active={activeFilter === "all"} 
+                onClick={() => setActiveFilter("all")}
+              >
+                Tous
+              </FilterChip>
+              {categories.map(cat => (
+                <FilterChip 
+                  key={cat._id} 
+                  active={activeFilter === cat._id} 
+                  onClick={() => setActiveFilter(cat._id)}
+                >
+                  {cat.name}
+                </FilterChip>
+              ))}
+            </FilterWrapper>
+          </SwipeContainer>
+        </HeaderRow>
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeFilter}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-          >
-            <ProductsGrid products={displayProducts} />
-          </motion.div>
-        </AnimatePresence>
+        <ProductsGrid products={displayProducts} />
 
-        <Link href="/products" passHref legacyBehavior>
-          <StyledButton>
-            Voir toute la librairie
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
-          </StyledButton>
-        </Link>
-      </Center>
-    </Section>
-  );
+        <ButtonWrapper>
+          <Link href="/products" passHref legacyBehavior>
+            <StyledButton>
+              Voir toute la librairie
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </StyledButton>
+          </Link>
+        </ButtonWrapper>
+      </Center>
+    </Section>
+  );
 }
