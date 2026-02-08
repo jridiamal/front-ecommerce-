@@ -11,7 +11,6 @@ const FooterContainer = styled.footer`
 
   @media screen and (min-width: 768px) {
     padding: 80px 40px 40px;
-    border: 2px solid red;
   }
 `;
 
