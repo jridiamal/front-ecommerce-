@@ -1,7 +1,7 @@
 import styled from "styled-components";
 
 const FooterContainer = styled.footer`
-  background: linear-gradient(180deg, #7f7bd1 0%, #000 100%);
+  background: linear-gradient(180deg, #7f7bd1 0%, #f5f0f0 100%);
   margin-top: -5px; /* Cela va faire remonter le footer pour couvrir le vide */
   width: 100%;
   padding: 60px 20px 40px;
