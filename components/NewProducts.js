@@ -39,36 +39,19 @@ const Box = styled(motion.div)`
 const ImgWrapper = styled.div`
   overflow: hidden;
   border-radius: 18px;
-  cursor: zoom-in;
+  height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
   position: relative;
+  cursor: zoom-in;
 `;
 
 const MainImg = styled(motion.img)`
   width: 100%;
-  height: 420px;
-  object-fit: contain;
-  transition: transform 0.3s ease;
-`;
-
-const ZoomOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  cursor: zoom-out;
-`;
-
-const ZoomedImage = styled.img`
-  max-width: 90%;
-  max-height: 90%;
   object-fit: contain;
-  border-radius: 10px;
 `;
 
 const Thumbs = styled.div`
@@ -196,7 +179,7 @@ const RecoGrid = styled.div`
 
 const RecoCards = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill,minmax(220px,1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 25px;
   margin-top: 25px;
 `;
@@ -205,10 +188,6 @@ export default function ProductPage({ product, recommended }) {
   const { addProduct } = useContext(CartContext);
   const { triggerFlyAnimation } = useContext(AnimationContext);
   const imgRef = useRef(null);
-  
-  const [isZoomed, setIsZoomed] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [isHovering, setIsHovering] = useState(false);
 
   const colorVariants = product?.properties?.colorVariants || [];
   const hasColors = colorVariants.length > 0;
@@ -217,11 +196,22 @@ export default function ProductPage({ product, recommended }) {
   const [currentImage, setCurrentImage] = useState(product.images?.[0]);
   const [qty, setQty] = useState(1);
 
+  // ÉTATS POUR LE ZOOM
+  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
+  const [isZoomed, setIsZoomed] = useState(false);
+
   useEffect(() => {
     setSelectedColor(null);
     setCurrentImage(product.images?.[0]);
     setQty(1);
   }, [product._id]);
+
+  const handleMouseMove = (e) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.pageX - left) / width) * 100;
+    const y = ((e.pageY - top) / height) * 100;
+    setZoomPos({ x, y });
+  };
 
   const currentVariant = selectedColor 
     ? colorVariants.find(v => v.color === selectedColor) 
@@ -238,16 +228,7 @@ export default function ProductPage({ product, recommended }) {
     (!currentVariant || !currentVariant.outOfStock);
 
   function handleAddToCart() {
-    if (!canAddToCart) {
-      if (isProductOutOfStock) {
-        toast.error("Ce produit est épuisé");
-      } else if (isCurrentVariantOutOfStock) {
-        toast.error(`La couleur ${currentVariant?.color} est épuisée`);
-      } else if (currentVariant?.outOfStock) {
-        toast.error(`La couleur ${currentVariant.color} est épuisée`);
-      }
-      return;
-    }
+    if (!canAddToCart) return;
 
     const imageToUse = currentVariant?.imageUrl || currentImage;
 
@@ -266,43 +247,17 @@ export default function ProductPage({ product, recommended }) {
       });
     }
     
-    const message = qty > 1 
-      ? `${qty} produits ajoutés au panier` 
-      : "Produit ajouté au panier";
-    toast.success(message);
+    toast.success(qty > 1 ? `${qty} produits ajoutés` : "Produit ajouté");
   }
 
   const handleThumbClick = (img) => {
     const variantForImage = colorVariants.find(v => v.imageUrl === img);
-    
-    if (variantForImage) {
-      if (variantForImage.outOfStock) {
-        toast.error(`La couleur ${variantForImage.color} est épuisée`);
-        return;
-      }
-      setSelectedColor(variantForImage.color);
-      setCurrentImage(img);
-    } else {
-      setSelectedColor(null);
-      setCurrentImage(img);
+    if (variantForImage?.outOfStock) {
+      toast.error(`Couleur ${variantForImage.color} épuisée`);
+      return;
     }
-  };
-
-  const handleMouseMove = (e) => {
-    if (!isHovering) return;
-    
-    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - left) / width) * 100;
-    const y = ((e.clientY - top) / height) * 100;
-    setMousePosition({ x, y });
-  };
-
-  const handleMouseEnter = () => {
-    setIsHovering(true);
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovering(false);
+    setSelectedColor(variantForImage?.color || null);
+    setCurrentImage(img);
   };
 
   return (
@@ -315,106 +270,64 @@ export default function ProductPage({ product, recommended }) {
             <ImgWrapper 
               ref={imgRef}
               onMouseMove={handleMouseMove}
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-              onClick={() => setIsZoomed(true)}
+              onMouseEnter={() => setIsZoomed(true)}
+              onMouseLeave={() => setIsZoomed(false)}
             >
               <MainImg 
                 src={currentImage} 
                 alt={product.title}
-                style={{
-                  transform: isHovering 
-                    ? `scale(1.2) translate(${(mousePosition.x - 50) * 0.1}%, ${(mousePosition.y - 50) * 0.1}%)`
-                    : 'scale(1)',
-                  transformOrigin: `${mousePosition.x}% ${mousePosition.y}%`
+                animate={{
+                  scale: isZoomed ? 2 : 1,
+                  originX: `${zoomPos.x}%`,
+                  originY: `${zoomPos.y}%`
                 }}
+                transition={{ type: "tween", ease: "easeOut", duration: 0.2 }}
               />
             </ImgWrapper>
             <Thumbs>
-              {product.images.map((img, i) => {
-                const variantForImage = colorVariants.find(v => v.imageUrl === img);
-                const isImageOutOfStock = variantForImage?.outOfStock;
-                
-                return (
-                  <img 
-                    key={i} 
-                    src={img} 
-                    onClick={() => handleThumbClick(img)}
-                    alt={`Vue ${i + 1} de ${product.title}`}
-                    style={{
-                      border: currentImage === img ? `2px solid ${accent}` : '2px solid transparent',
-                      opacity: isImageOutOfStock ? 0.5 : 1,
-                      cursor: isImageOutOfStock ? 'not-allowed' : 'pointer',
-                      position: 'relative'
-                    }}
-                    title={isImageOutOfStock ? `Couleur ${variantForImage.color} épuisée` : ''}
-                  />
-                );
-              })}
+              {product.images.map((img, i) => (
+                <img 
+                  key={i} 
+                  src={img} 
+                  onClick={() => handleThumbClick(img)}
+                  alt="thumbnail"
+                  style={{
+                    border: currentImage === img ? `2px solid ${accent}` : '2px solid transparent',
+                    opacity: colorVariants.find(v => v.imageUrl === img)?.outOfStock ? 0.5 : 1
+                  }}
+                />
+              ))}
             </Thumbs>
           </Box>
 
-          <Box initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}>
+          <Box initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
             <Title>{product.title}</Title>
             <Desc>{product.description}</Desc>
             <Price>{product.price.toFixed(2)} DT <span>(HT)</span></Price>
 
             {hasColors && (
-              <>
-                <p style={{ fontSize: '0.9rem', marginBottom: '5px', fontWeight: '500' }}>
-                  Choisissez une couleur:
-                </p>
-                <ColorWrapper>
-                  {colorVariants.map((v, i) => (
-                    <ColorCircle
-                      key={i}
-                      color={v.color}
-                      active={selectedColor === v.color || currentVariant?.color === v.color}
-                      isOutOfStock={v.outOfStock}
-                      onClick={() => {
-                        if (v.outOfStock) {
-                          toast.error(`La couleur ${v.color} est épuisée`);
-                          return;
-                        }
+              <ColorWrapper>
+                {colorVariants.map((v, i) => (
+                  <ColorCircle
+                    key={i}
+                    color={v.color}
+                    active={selectedColor === v.color}
+                    isOutOfStock={v.outOfStock}
+                    onClick={() => {
+                      if (!v.outOfStock) {
                         setSelectedColor(v.color);
-                        if (v.imageUrl) {
-                          setCurrentImage(v.imageUrl);
-                        }
-                      }}
-                      title={`${v.color} ${v.outOfStock ? '(Épuisé)' : ''}`}
-                    />
-                  ))}
-                </ColorWrapper>
-                {currentVariant && (
-                  <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
-                    {currentVariant.outOfStock ? (
-                      <span style={{ color: 'red' }}>
-                        ⚠️ La couleur <strong>{currentVariant.color}</strong> est épuisée
-                      </span>
-                    ) : (
-                      <span>
-                        Couleur: <strong>{currentVariant.color}</strong>
-                      </span>
-                    )}
-                  </p>
-                )}
-              </>
+                        if (v.imageUrl) setCurrentImage(v.imageUrl);
+                      }
+                    }}
+                  />
+                ))}
+              </ColorWrapper>
             )}
 
             <Qty>
-              <QtyBtn 
-                onClick={() => setQty(q => Math.max(1, q - 1))}
-                disabled={!canAddToCart}
-              >
-                -
-              </QtyBtn>
+              <QtyBtn onClick={() => setQty(q => Math.max(1, q - 1))} disabled={!canAddToCart}>-</QtyBtn>
               <strong>{qty}</strong>
-              <QtyBtn 
-                onClick={() => setQty(q => q + 1)}
-                disabled={!canAddToCart}
-              >
-                +
-              </QtyBtn>
+              <QtyBtn onClick={() => setQty(q => q + 1)} disabled={!canAddToCart}>+</QtyBtn>
             </Qty>
 
             <AddBtn
@@ -423,24 +336,8 @@ export default function ProductPage({ product, recommended }) {
               whileHover={canAddToCart ? { scale: 1.02 } : {}}
               whileTap={canAddToCart ? { scale: 0.98 } : {}}
             >
-              {isProductOutOfStock ? "Produit épuisé" : 
-               isRupture ? "Couleur épuisée" : 
-               `Ajouter au panier (${qty})`}
+              {isRupture ? "Épuisé" : `Ajouter au panier (${qty})`}
             </AddBtn>
-
-            {isProductOutOfStock && (
-              <p style={{ 
-                marginTop: '15px', 
-                padding: '10px', 
-                backgroundColor: '#fff3f3', 
-                borderRadius: '8px',
-                color: '#d32f2f',
-                fontSize: '0.9rem',
-                textAlign: 'center'
-              }}>
-                ⚠️ Ce produit est actuellement en rupture de stock.
-              </p>
-            )}
           </Box>
         </Grid>
 
@@ -454,12 +351,6 @@ export default function ProductPage({ product, recommended }) {
         </RecoGrid>
       </Center>
       <Footer />
-      
-      {isZoomed && (
-        <ZoomOverlay onClick={() => setIsZoomed(false)}>
-          <ZoomedImage src={currentImage} alt={product.title} />
-        </ZoomOverlay>
-      )}
     </Page>
   );
 }
@@ -467,10 +358,13 @@ export default function ProductPage({ product, recommended }) {
 export async function getServerSideProps({ query }) {
   await mongooseConnect();
   const product = await Product.findById(query.id).lean();
+  
+  // Utilisation de $sample pour l'aléatoire et augmentation à 8 produits
   const recommended = await Product.aggregate([
     { $match: { _id: { $ne: product._id }, category: product.category } },
-    { $sample: { size: 6 } }
+    { $sample: { size: 8 } } 
   ]);
+
   return {
     props: {
       product: JSON.parse(JSON.stringify(product)),
