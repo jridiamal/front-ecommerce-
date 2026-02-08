@@ -21,7 +21,7 @@ const ColumnsWrapper = styled.div`
   gap: 20px;
   margin: 20px 0;
   margin-top: 40px;
-  background-color: #f5f5f7;
+      backgroundColor : "bg-gray-50"
   @media(min-width: 768px){
     grid-template-columns: 1.5fr 0.8fr;
     gap: 30px;
