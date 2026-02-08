@@ -2,8 +2,7 @@ import styled from "styled-components";
 
 const FooterContainer = styled.footer`
   background: #7f7bd1;
-  background: radial-gradient(circle, rgba(127, 123, 209, 1) 0%, rgba(245, 240, 240, 1) 100%);
-  width: 100%;
+background: radial-gradient(circle at top, rgba(127, 123, 209, 1) 0%, rgba(200, 200, 230, 1) 100%);  width: 100%;
   padding: 60px 20px 40px;
   font-family: 'Inter', sans-serif;
   border-top: 1px solid rgba(15, 23, 42, 0.05);
@@ -11,7 +10,6 @@ const FooterContainer = styled.footer`
 
   @media screen and (min-width: 768px) {
     padding: 80px 40px 40px;
-    border: 2px solid red;
   }
 `;
 
