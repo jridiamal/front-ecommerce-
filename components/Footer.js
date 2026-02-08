@@ -1,7 +1,7 @@
 import styled from "styled-components";
 
 const FooterContainer = styled.footer`
-margin-top: 20px; /* Force le footer à remonter */
+margin-top: 90px; /* Force le footer à remonter */
   background: #7f7bd1;
 background: radial-gradient(circle at top, rgba(127, 123, 209, 1) 0%, rgba(200, 200, 230, 1) 100%);  width: 100%;
 padding: 40px 20px 40px; /* Réduit de 60px à 40px */  font-family: 'Inter', sans-serif;
