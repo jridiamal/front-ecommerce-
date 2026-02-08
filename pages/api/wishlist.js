@@ -1,6 +1,6 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import { getServerSession } from "next-auth";
-import { authOptions } from "./api/auth/[...nextauth]";
+import { authOptions } from "./auth/[...nextauth]";
 import WishedProduct from "@/models/WishedProduct";
 import  Product  from "@/models/Product";
 
