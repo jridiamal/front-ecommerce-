@@ -110,13 +110,8 @@ export default function Footer() {
         <BrandColumn>
           <h2>Société F.B.M</h2>
           <p>
-            Votre partenaire de confiance pour les fournitures scolaires et le matériel de bureau en Tunisie.
-          </p>
-          <SocialLinks>
-            <a href="#" aria-label="Facebook">Facebook</a>
-            <a href="#" aria-label="Instagram">Instagram</a>
-            <a href="#" aria-label="LinkedIn">LinkedIn</a>
-          </SocialLinks>
+excellence au service de votre savoir. Découvrez notre large sélection de fournitures scolaires, livres, et accessoires de bureau soigneusement sélectionnés.          </p>
+         
         </BrandColumn>
 
         <NavColumn>
@@ -129,8 +124,7 @@ export default function Footer() {
         <NavColumn>
           <h3>Aide & Contact</h3>
           <StyledLink href="/contact">Contact</StyledLink>
-          <StyledLink href="/shipping">Livraison</StyledLink>
-          <StyledLink href="/legal">Mentions légales</StyledLink>
+       
         </NavColumn>
       </FooterGrid>
 
