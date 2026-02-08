@@ -17,12 +17,10 @@ const Section = styled.section`
   background: #fdfdfd;
 
   @media screen and (min-width: 768px) {
-    padding: 60px 0;
-  }
+padding: 50px 0 20px 0; /* On réduit le padding du bas à 20px */  }
 
   @media screen and (min-width: 1200px) {
-    padding: 80px 0;
-  }
+padding: 60px 0 30px 0; /* On réduit ici aussi */  }
 `;
 
 const HeaderRow = styled.div`

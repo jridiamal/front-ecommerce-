@@ -3,14 +3,12 @@ import styled from "styled-components";
 const FooterContainer = styled.footer`
   background: #7f7bd1;
 background: radial-gradient(circle at top, rgba(127, 123, 209, 1) 0%, rgba(200, 200, 230, 1) 100%);  width: 100%;
-  padding: 60px 20px 40px;
-  font-family: 'Inter', sans-serif;
+padding: 40px 20px 40px; /* Réduit de 60px à 40px */  font-family: 'Inter', sans-serif;
   border-top: 1px solid rgba(15, 23, 42, 0.05);
   flex-shrink: 0; 
 
   @media screen and (min-width: 768px) {
-    padding: 80px 40px 40px;
-  }
+padding: 50px 40px 40px; /* Réduit de 80px à 50px */  }
 `;
 
 const FooterGrid = styled.div`
